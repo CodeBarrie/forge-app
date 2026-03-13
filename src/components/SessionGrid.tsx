@@ -26,6 +26,7 @@ interface SessionGridProps {
   sessions: Session[];
   focusedSessionId: string | null;
   bgOpacity: number;
+  soundEnabled: boolean;
   showSymbols: boolean;
   showGridLines: boolean;
   onRemove: (id: string) => void;
@@ -36,7 +37,7 @@ interface SessionGridProps {
   onSessionFocus: (id: string) => void;
 }
 
-export function SessionGrid({ sessions, focusedSessionId, bgOpacity, showSymbols, showGridLines, onRemove, onUpdate, onReorder, onNewSession, onQuickSession, onSessionFocus }: SessionGridProps) {
+export function SessionGrid({ sessions, focusedSessionId, bgOpacity, soundEnabled, showSymbols, showGridLines, onRemove, onUpdate, onReorder, onNewSession, onQuickSession, onSessionFocus }: SessionGridProps) {
   const [visiblePage, setVisiblePage] = useState(0);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [dropIdx, setDropIdx] = useState<number | null>(null);
@@ -301,6 +302,7 @@ export function SessionGrid({ sessions, focusedSessionId, bgOpacity, showSymbols
               session={session}
               isFocused={focusedSessionId === session.id}
               bgOpacity={bgOpacity}
+              soundEnabled={soundEnabled}
               onClose={() => onRemove(session.id)}
               onUpdate={(updates) => onUpdate(session.id, updates)}
               onFocus={() => onSessionFocus(session.id)}

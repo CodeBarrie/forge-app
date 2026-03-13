@@ -8,11 +8,13 @@ use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent}
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let state: AppState = Arc::new(Mutex::new(ProcessStore::new()));
+    let sysinfo_state: SysInfoState = Arc::new(Mutex::new(sysinfo::System::new_all()));
 
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
         .manage(state)
+        .manage(sysinfo_state)
         .invoke_handler(tauri::generate_handler![
             start_session,
             write_to_session,
@@ -28,6 +30,7 @@ pub fn run() {
             read_screenshot_thumbnail,
             check_dir_exists,
             export_transcript,
+            get_system_stats,
         ])
         .setup(|app| {
             // Show and focus main window

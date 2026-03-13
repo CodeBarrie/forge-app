@@ -431,3 +431,89 @@ fn find_claude_binary() -> Option<String> {
     }
     None
 }
+
+// ── System Stats ──────────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize)]
+pub struct SystemStats {
+    pub cpu_percent: f32,
+    pub cpu_temp: Option<f32>,
+    pub ram_used_gb: f32,
+    pub ram_total_gb: f32,
+    pub ram_percent: f32,
+    pub gpu_percent: Option<f32>,
+    pub gpu_temp: Option<f32>,
+    pub vram_used_mb: Option<f32>,
+    pub vram_total_mb: Option<f32>,
+    pub vram_percent: Option<f32>,
+}
+
+pub type SysInfoState = Arc<Mutex<sysinfo::System>>;
+
+#[tauri::command]
+pub fn get_system_stats(sysinfo: State<'_, SysInfoState>) -> SystemStats {
+    let mut sys = sysinfo.lock().unwrap();
+    sys.refresh_cpu_usage();
+    sys.refresh_memory();
+
+    // CPU: average across all cores
+    let cpu_percent = sys.cpus().iter().map(|c| c.cpu_usage()).sum::<f32>()
+        / sys.cpus().len().max(1) as f32;
+
+    // CPU temp from sysinfo components
+    let cpu_temp = {
+        use sysinfo::Components;
+        let components = Components::new_with_refreshed_list();
+        components.iter()
+            .find(|c| {
+                let label = c.label().to_lowercase();
+                label.contains("cpu") || label.contains("core") || label.contains("package")
+            })
+            .map(|c| c.temperature())
+    };
+
+    let ram_total_gb = sys.total_memory() as f32 / 1_073_741_824.0;
+    let ram_used_gb = sys.used_memory() as f32 / 1_073_741_824.0;
+    let ram_percent = if ram_total_gb > 0.0 { (ram_used_gb / ram_total_gb) * 100.0 } else { 0.0 };
+
+    // GPU stats via nvidia-smi (works for NVIDIA GPUs)
+    let (gpu_percent, gpu_temp, vram_used_mb, vram_total_mb, vram_percent) = get_gpu_stats();
+
+    SystemStats {
+        cpu_percent,
+        cpu_temp,
+        ram_used_gb,
+        ram_total_gb,
+        ram_percent,
+        gpu_percent,
+        gpu_temp,
+        vram_used_mb,
+        vram_total_mb,
+        vram_percent,
+    }
+}
+
+fn get_gpu_stats() -> (Option<f32>, Option<f32>, Option<f32>, Option<f32>, Option<f32>) {
+    // Try nvidia-smi first
+    if let Ok(output) = std::process::Command::new("nvidia-smi")
+        .args(["--query-gpu=utilization.gpu,memory.used,memory.total,temperature.gpu", "--format=csv,noheader,nounits"])
+        .output()
+    {
+        if output.status.success() {
+            let text = String::from_utf8_lossy(&output.stdout);
+            let parts: Vec<&str> = text.trim().split(',').map(|s| s.trim()).collect();
+            if parts.len() >= 4 {
+                let gpu = parts[0].parse::<f32>().ok();
+                let vram_used = parts[1].parse::<f32>().ok();
+                let vram_total = parts[2].parse::<f32>().ok();
+                let gpu_temp = parts[3].parse::<f32>().ok();
+                let vram_pct = match (vram_used, vram_total) {
+                    (Some(u), Some(t)) if t > 0.0 => Some((u / t) * 100.0),
+                    _ => None,
+                };
+                return (gpu, gpu_temp, vram_used, vram_total, vram_pct);
+            }
+        }
+    }
+    (None, None, None, None, None)
+}

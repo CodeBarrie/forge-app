@@ -6,6 +6,7 @@ import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebglAddon } from "@xterm/addon-webgl";
 import { generateSessionSummary } from "../lib/summarizer";
+import { playChime } from "../lib/sounds";
 import { forgeLog } from "./ConsoleLog";
 import "@xterm/xterm/css/xterm.css";
 
@@ -13,6 +14,7 @@ interface SessionPaneProps {
   session: Session;
   isFocused: boolean;
   bgOpacity: number;
+  soundEnabled: boolean;
   onClose: () => void;
   onUpdate: (updates: Partial<Session>) => void;
   onFocus: () => void;
@@ -23,7 +25,7 @@ const SESSION_COLORS = [
   "#f87171", "#fbbf24", "#22d3ee", "#f472b6",
 ];
 
-export function SessionPane({ session, isFocused, bgOpacity, onUpdate, onClose, onFocus }: SessionPaneProps) {
+export function SessionPane({ session, isFocused, bgOpacity, soundEnabled, onUpdate, onClose, onFocus }: SessionPaneProps) {
   const termRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<Terminal | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
@@ -31,11 +33,16 @@ export function SessionPane({ session, isFocused, bgOpacity, onUpdate, onClose, 
   const [ready, setReady] = useState(false);
   const [autosaveFlash, setAutosaveFlash] = useState(false);
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
+  const [dictationOpen, setDictationOpen] = useState(false);
+  const [dictationText, setDictationText] = useState("");
   const transcriptRef = useRef<string>("");
   const startedRef = useRef(false);
   const claudeSessionIdRef = useRef<string | null>(session.claudeSessionId || null);
   const webglRef = useRef<WebglAddon | null>(null);
   const activityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activityStartRef = useRef<number | null>(null);
+  const userInputBuf = useRef("");
+  const autoNamed = useRef(false);
 
   useEffect(() => {
     if (!termRef.current) return;
@@ -153,9 +160,18 @@ export function SessionPane({ session, isFocused, bgOpacity, onUpdate, onClose, 
       setExited(false);
       onUpdate({ status: "active", lastActiveAt: Date.now() });
 
+      // Track when sustained activity started
+      if (!activityStartRef.current) activityStartRef.current = Date.now();
+
       // Idle detection: mark idle after 3s of no output
       if (activityTimerRef.current) clearTimeout(activityTimerRef.current);
       activityTimerRef.current = setTimeout(() => {
+        // Play chime if Claude was active for >10s (sustained work finished)
+        const activeFor = activityStartRef.current ? Date.now() - activityStartRef.current : 0;
+        if (activeFor > 10_000 && soundEnabled) {
+          playChime();
+        }
+        activityStartRef.current = null;
         onUpdate({ status: "idle" });
       }, 3000);
 
@@ -181,12 +197,30 @@ export function SessionPane({ session, isFocused, bgOpacity, onUpdate, onClose, 
       onUpdate({ status: "closed" });
     }).then((fn) => { unlistenExit = fn; });
 
-    // Send keyboard input to PTY
+    // Send keyboard input to PTY + auto-name quick sessions
     term.onData((data) => {
       invoke("write_to_session", {
         sessionId: session.id,
         data,
       }).catch(() => {});
+
+      // Auto-name: capture first user input for quick sessions
+      if (!autoNamed.current && session.label.startsWith("Quick ")) {
+        if (data === "\r" || data === "\n") {
+          const input = userInputBuf.current.trim();
+          if (input.length > 2) {
+            autoNamed.current = true;
+            const label = input.length > 40 ? input.slice(0, 37) + "..." : input;
+            onUpdate({ label });
+          }
+          userInputBuf.current = "";
+        } else if (data.length === 1 && data.charCodeAt(0) >= 32) {
+          userInputBuf.current += data;
+        } else if (data === "\x7f") {
+          // backspace
+          userInputBuf.current = userInputBuf.current.slice(0, -1);
+        }
+      }
     });
 
     // Handle resize
@@ -460,6 +494,13 @@ export function SessionPane({ session, isFocused, bgOpacity, onUpdate, onClose, 
             )}
           </div>
           <button
+            className={`btn-mic ${dictationOpen ? "active" : ""}`}
+            onClick={() => setDictationOpen((v) => !v)}
+            title={dictationOpen ? "Close dictation bar" : "Open dictation bar"}
+          >
+            mic
+          </button>
+          <button
             className={`btn-pin ${session.pinned ? "pinned" : ""}`}
             onClick={() => onUpdate({ pinned: !session.pinned })}
             title={session.pinned ? "Unpin session" : "Pin session"}
@@ -542,6 +583,42 @@ export function SessionPane({ session, isFocused, bgOpacity, onUpdate, onClose, 
               </>
             )}
           </div>
+        </div>
+      )}
+      {dictationOpen && (
+        <div className="dictation-bar">
+          <input
+            className="dictation-input"
+            value={dictationText}
+            onChange={(e) => setDictationText(e.target.value)}
+            placeholder="Dictate or type here, Enter to send..."
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && dictationText.trim()) {
+                invoke("write_to_session", {
+                  sessionId: session.id,
+                  data: dictationText + "\r",
+                }).catch(() => {});
+                setDictationText("");
+              } else if (e.key === "Escape") {
+                setDictationOpen(false);
+              }
+            }}
+            autoFocus
+          />
+          <button
+            className="dictation-send"
+            onClick={() => {
+              if (dictationText.trim()) {
+                invoke("write_to_session", {
+                  sessionId: session.id,
+                  data: dictationText + "\r",
+                }).catch(() => {});
+                setDictationText("");
+              }
+            }}
+          >
+            send
+          </button>
         </div>
       )}
       <div

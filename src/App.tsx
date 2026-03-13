@@ -7,6 +7,7 @@ import { Header } from "./components/Header";
 import { NewSessionModal } from "./components/NewSessionModal";
 import { CommandPalette, CommandAction } from "./components/CommandPalette";
 import { ToastContainer, ToastMessage } from "./components/Toast";
+import { StatusBar } from "./components/StatusBar";
 import { Session } from "./types";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -22,6 +23,10 @@ export default function App() {
   const [showSymbols, setShowSymbols] = useState(true);
   const [showGridLines, setShowGridLines] = useState(true);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    const saved = localStorage.getItem("forge-sound-enabled");
+    return saved !== null ? saved === "true" : true;
+  });
 
   useEffect(() => { interceptConsole(); }, []);
   const [windowOpacity, setWindowOpacity] = useState(1);
@@ -157,6 +162,11 @@ export default function App() {
     return () => { if (unlisten) unlisten(); };
   }, [quickSession]);
 
+  // ── Persist sound setting ─────────────────────────────────────────
+  useEffect(() => {
+    localStorage.setItem("forge-sound-enabled", String(soundEnabled));
+  }, [soundEnabled]);
+
   // ── Command palette actions ───────────────────────────────────────────
   const commandActions: CommandAction[] = useMemo(() => [
     { id: "new-session", label: "New Session", shortcut: "Ctrl+N", action: () => setNewSessionOpen(true) },
@@ -253,6 +263,7 @@ export default function App() {
           sessions={sessions}
           focusedSessionId={focusedSessionId}
           bgOpacity={windowOpacity}
+          soundEnabled={soundEnabled}
           showSymbols={showSymbols}
           showGridLines={showGridLines}
           onRemove={removeSession}
@@ -294,6 +305,11 @@ export default function App() {
         />
       )}
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+      <StatusBar
+        sessions={sessions}
+        soundEnabled={soundEnabled}
+        onToggleSound={() => setSoundEnabled((v) => !v)}
+      />
     </div>
   );
 }

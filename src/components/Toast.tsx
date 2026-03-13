@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 export interface ToastMessage {
   id: string;
@@ -22,15 +22,26 @@ export function ToastContainer({ toasts, onDismiss }: ToastContainerProps) {
 }
 
 function ToastItem({ toast, onDismiss }: { toast: ToastMessage; onDismiss: () => void }) {
+  const onDismissRef = useRef(onDismiss);
+  onDismissRef.current = onDismiss;
+
   useEffect(() => {
-    const timer = setTimeout(onDismiss, 4000);
+    const timer = setTimeout(() => onDismissRef.current(), 4000);
     return () => clearTimeout(timer);
-  }, [onDismiss]);
+  }, []);
 
   return (
     <div className={`toast toast-${toast.type}`}>
       <span className="toast-text">{toast.text}</span>
-      <button className="toast-close" onClick={onDismiss}>×</button>
+      <button
+        className="toast-close"
+        onPointerDown={(e) => {
+          e.stopPropagation();
+          onDismiss();
+        }}
+      >
+        ×
+      </button>
     </div>
   );
 }
