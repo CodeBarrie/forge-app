@@ -584,7 +584,7 @@ button { cursor: pointer; font-family: var(--font-mono); border: none; }
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: 8px;
   color: var(--text-dim);
   position: relative;
   overflow: hidden;
@@ -687,11 +687,54 @@ button { cursor: pointer; font-family: var(--font-mono); border: none; }
 
 .empty-glyph {
   font-size: 56px;
-  color: #000;
-  margin-bottom: 8px;
-  filter: drop-shadow(0 0 12px rgba(0, 0, 0, 0.15));
+  color: #fff;
+  margin-bottom: 12px;
+  margin-top: -16px;
+  mix-blend-mode: screen;
+  filter: drop-shadow(0 0 16px rgba(255, 255, 255, 0.5)) drop-shadow(0 0 40px rgba(255, 255, 255, 0.2));
   animation: logo-breathe 4s ease-in-out infinite;
   z-index: 1;
+}
+
+/* ─── Power Clock ─────────────────────────────── */
+.power-clock {
+  z-index: 1;
+  text-align: center;
+  margin: -28px 0 -12px;
+}
+
+.power-clock-time {
+  font-family: var(--font-mono);
+  font-size: 52px;
+  font-weight: 700;
+  color: #ef4444;
+  letter-spacing: 4px;
+  line-height: 1;
+  text-shadow:
+    0 0 10px rgba(239, 68, 68, 0.6),
+    0 0 30px rgba(239, 68, 68, 0.3),
+    0 0 60px rgba(239, 68, 68, 0.1);
+}
+
+.power-clock-label {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 4px;
+  color: #ffffff;
+  opacity: 0.7;
+  margin-top: 4px;
+  text-shadow: none;
+}
+
+.power-clock-kanji {
+  font-size: 30px;
+  font-weight: 400;
+  letter-spacing: 6px;
+  color: #ffffff;
+  opacity: 1;
+  margin-top: 2px;
+  margin-bottom: 6px;
 }
 
 .grid-empty-state h2 {
@@ -2005,4 +2048,106 @@ button { cursor: pointer; font-family: var(--font-mono); border: none; }
   color: var(--text-secondary);
   font-size: 10px;
   margin-left: -1px;
+}
+
+/* ─── Broadcast Bar ───────────────────────────── */
+.broadcast-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: rgba(59, 130, 246, 0.08);
+  border-bottom: 1px solid rgba(59, 130, 246, 0.25);
+}
+
+.broadcast-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.15);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+
+.broadcast-input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: var(--radius-sm);
+  padding: 5px 10px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.broadcast-input:focus {
+  border-color: #3b82f6;
+}
+
+.broadcast-input::placeholder {
+  color: var(--text-dim);
+}
+
+.broadcast-send {
+  background: rgba(59, 130, 246, 0.2);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  border-radius: var(--radius-sm);
+  color: #93c5fd;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.broadcast-send:hover {
+  background: rgba(59, 130, 246, 0.35);
+  color: #fff;
+}
+
+.broadcast-close {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.broadcast-close:hover {
+  color: var(--text-primary);
+}
+
+/* ─── Git Info ────────────────────────────────── */
+.session-git {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 6px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.git-branch {
+  background: rgba(139, 92, 246, 0.15);
+  color: #c4b5fd;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.3px;
+}
+
+.git-dirty {
+  color: #fbbf24;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1;
 }

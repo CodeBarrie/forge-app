@@ -8,6 +8,7 @@ import { NewSessionModal } from "./components/NewSessionModal";
 import { CommandPalette, CommandAction } from "./components/CommandPalette";
 import { ToastContainer, ToastMessage } from "./components/Toast";
 import { StatusBar } from "./components/StatusBar";
+import { BroadcastBar } from "./components/BroadcastBar";
 import { Session } from "./types";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -23,6 +24,7 @@ export default function App() {
   const [showSymbols, setShowSymbols] = useState(true);
   const [showGridLines, setShowGridLines] = useState(true);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const [broadcastOpen, setBroadcastOpen] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(() => {
     const saved = localStorage.getItem("forge-sound-enabled");
     return saved !== null ? saved === "true" : true;
@@ -176,10 +178,11 @@ export default function App() {
     { id: "open-console", label: "Open Console", action: () => setConsoleOpen(true) },
     { id: "toggle-symbols", label: `${showSymbols ? "Hide" : "Show"} Background Symbols`, action: () => setShowSymbols((v) => !v) },
     { id: "toggle-grid", label: `${showGridLines ? "Hide" : "Show"} Grid Lines`, action: () => setShowGridLines((v) => !v) },
+    { id: "broadcast", label: `${broadcastOpen ? "Close" : "Open"} Broadcast Mode`, shortcut: "Ctrl+B", action: () => setBroadcastOpen((v) => !v) },
     { id: "close-all", label: "Close All Sessions", action: () => {
       sessions.forEach((s) => window.dispatchEvent(new CustomEvent("forge-close-session", { detail: s.id })));
     }},
-  ], [quickSession, showSymbols, showGridLines, sessions]);
+  ], [quickSession, showSymbols, showGridLines, sessions, broadcastOpen]);
 
   // ── Global keyboard shortcuts ─────────────────────────────────────────
   useEffect(() => {
@@ -193,6 +196,9 @@ export default function App() {
       } else if (e.ctrlKey && e.key === "k" && !isInput) {
         e.preventDefault();
         setCommandPaletteOpen((v) => !v);
+      } else if (e.ctrlKey && e.key === "b" && !isInput) {
+        e.preventDefault();
+        setBroadcastOpen((v) => !v);
       } else if (e.ctrlKey && e.key === "n" && !isInput) {
         e.preventDefault();
         setNewSessionOpen(true);
@@ -213,6 +219,13 @@ export default function App() {
           setFocusedSessionId(prev[nextIdx].id);
           return prev;
         });
+      } else if (e.ctrlKey && !e.shiftKey && e.key >= "1" && e.key <= "9" && !isInput) {
+        e.preventDefault();
+        const idx = parseInt(e.key) - 1;
+        setSessions((prev) => {
+          if (idx < prev.length) setFocusedSessionId(prev[idx].id);
+          return prev;
+        });
       } else if (e.ctrlKey && e.key === "w" && !isInput && focusedSessionId) {
         e.preventDefault();
         window.dispatchEvent(new CustomEvent("forge-close-session", { detail: focusedSessionId }));
@@ -230,6 +243,15 @@ export default function App() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [focusedSessionId, libraryOpen, newSessionOpen, screenshotsOpen, consoleOpen, commandPaletteOpen, quickSession]);
+
+  const broadcastToAll = useCallback((text: string) => {
+    sessions.forEach((s) => {
+      if (s.status !== "closed") {
+        invoke("write_to_session", { sessionId: s.id, data: text + "\r" }).catch(() => {});
+      }
+    });
+    addToast(`Broadcast sent to ${sessions.filter((s) => s.status !== "closed").length} sessions`, "success");
+  }, [sessions, addToast]);
 
   const handleScreenshotSelect = useCallback((path: string) => {
     const targetId = focusedSessionId || (sessions.length > 0 ? sessions[0].id : null);
@@ -258,6 +280,13 @@ export default function App() {
         onToggleGridLines={() => setShowGridLines((v) => !v)}
       />
       <div className="ember-strip" />
+      {broadcastOpen && (
+        <BroadcastBar
+          sessionCount={sessions.filter((s) => s.status !== "closed").length}
+          onSend={broadcastToAll}
+          onClose={() => setBroadcastOpen(false)}
+        />
+      )}
       <main className="app-main" style={{ "--bg-opacity": Math.pow(windowOpacity, 2) } as React.CSSProperties}>
         <SessionGrid
           sessions={sessions}

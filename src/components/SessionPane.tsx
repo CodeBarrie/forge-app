@@ -43,6 +43,8 @@ export function SessionPane({ session, isFocused, bgOpacity, soundEnabled, onUpd
   const activityStartRef = useRef<number | null>(null);
   const userInputBuf = useRef("");
   const autoNamed = useRef(false);
+  const [gitBranch, setGitBranch] = useState<string | null>(null);
+  const [gitDirty, setGitDirty] = useState(false);
 
   useEffect(() => {
     if (!termRef.current) return;
@@ -451,6 +453,23 @@ export function SessionPane({ session, isFocused, bgOpacity, soundEnabled, onUpd
     return () => clearInterval(timer);
   }, [session.id, session.label, session.project, session.workingDir, session.createdAt, exited]);
 
+  // Poll git info for this session's working dir
+  useEffect(() => {
+    let active = true;
+    const poll = () => {
+      invoke<{ branch: string | null; dirty: boolean; ahead: number; behind: number } | null>(
+        "get_git_info", { workingDir: session.workingDir }
+      ).then((info) => {
+        if (!active || !info) return;
+        setGitBranch(info.branch);
+        setGitDirty(info.dirty);
+      }).catch(() => {});
+    };
+    poll();
+    const timer = setInterval(poll, 10000);
+    return () => { active = false; clearInterval(timer); };
+  }, [session.workingDir]);
+
   const statusColor = {
     active: "#4ade80",
     thinking: "#fbbf24",
@@ -466,6 +485,12 @@ export function SessionPane({ session, isFocused, bgOpacity, soundEnabled, onUpd
           <span className={`session-indicator ${session.status === "active" ? "pulse" : ""}`} style={{ backgroundColor: statusColor }} />
           <span className="session-label">{session.label}</span>
           <span className="session-project" style={session.color ? { color: session.color } : undefined}>{session.project}</span>
+          {gitBranch && (
+            <span className="session-git">
+              <span className="git-branch">{gitBranch}</span>
+              {gitDirty && <span className="git-dirty">*</span>}
+            </span>
+          )}
         </div>
         <div className="session-controls">
           {exited && <span className="session-exited">exited</span>}

@@ -493,6 +493,66 @@ pub fn get_system_stats(sysinfo: State<'_, SysInfoState>) -> SystemStats {
     }
 }
 
+// ── Git Info ──────────────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize)]
+pub struct GitInfo {
+    pub branch: Option<String>,
+    pub dirty: bool,
+    pub ahead: u32,
+    pub behind: u32,
+}
+
+#[tauri::command]
+pub fn get_git_info(working_dir: String) -> Option<GitInfo> {
+    // Get current branch
+    let branch_output = std::process::Command::new("git")
+        .args(["rev-parse", "--abbrev-ref", "HEAD"])
+        .current_dir(&working_dir)
+        .output()
+        .ok()?;
+
+    if !branch_output.status.success() {
+        return None; // Not a git repo
+    }
+
+    let branch = String::from_utf8_lossy(&branch_output.stdout).trim().to_string();
+
+    // Check if dirty (uncommitted changes)
+    let status_output = std::process::Command::new("git")
+        .args(["status", "--porcelain"])
+        .current_dir(&working_dir)
+        .output()
+        .ok();
+    let dirty = status_output
+        .map(|o| !String::from_utf8_lossy(&o.stdout).trim().is_empty())
+        .unwrap_or(false);
+
+    // Check ahead/behind
+    let ab_output = std::process::Command::new("git")
+        .args(["rev-list", "--left-right", "--count", "HEAD...@{upstream}"])
+        .current_dir(&working_dir)
+        .output()
+        .ok();
+    let (ahead, behind) = ab_output
+        .and_then(|o| {
+            if !o.status.success() { return None; }
+            let text = String::from_utf8_lossy(&o.stdout).trim().to_string();
+            let parts: Vec<&str> = text.split_whitespace().collect();
+            if parts.len() == 2 {
+                Some((
+                    parts[0].parse::<u32>().unwrap_or(0),
+                    parts[1].parse::<u32>().unwrap_or(0),
+                ))
+            } else {
+                None
+            }
+        })
+        .unwrap_or((0, 0));
+
+    Some(GitInfo { branch: Some(branch), dirty, ahead, behind })
+}
+
 fn get_gpu_stats() -> (Option<f32>, Option<f32>, Option<f32>, Option<f32>, Option<f32>) {
     // Try nvidia-smi first
     if let Ok(output) = std::process::Command::new("nvidia-smi")

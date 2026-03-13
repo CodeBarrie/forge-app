@@ -1,7 +1,7 @@
 # Forge — Project Status
 
-## Current State (v0.5.0)
-Tauri v2 + React desktop app that runs multiple Claude Code sessions in parallel within embedded xterm.js terminals. Full-featured session management with drag-to-reorder, pinned sessions, system tray, color picker, command palette, activity indicators, toast notifications, system monitoring status bar, auto-naming, sound alerts, and dictation support.
+## Current State (v0.6.0)
+Tauri v2 + React desktop app that runs multiple Claude Code sessions in parallel within embedded xterm.js terminals. Full-featured session management with drag-to-reorder, pinned sessions, system tray, color picker, command palette, activity indicators, toast notifications, system monitoring status bar, auto-naming, sound alerts, dictation support, broadcast mode, git integration, and hotkey pane focus.
 
 ## Working
 - Embedded PTY terminals via portable-pty + xterm.js (WebGL renderer with canvas fallback for transparency)
@@ -18,7 +18,7 @@ Tauri v2 + React desktop app that runs multiple Claude Code sessions in parallel
 - Dark title bar, animated pastel gradient on FORGE wordmark, Quick Session button, and empty state
 - Rainbow hue-cycling glass strip between header and content
 - Visual polish: glow effects, animated logo, hover states, entrance animations, white-bordered buttons
-- Keyboard shortcuts: Ctrl+N (new), Ctrl+Shift+N (quick), Ctrl+K (command palette), Ctrl+L (library), Ctrl+Tab (cycle), Ctrl+W (close), Ctrl+S (save), Ctrl+P (screenshots), Escape (close modals)
+- Keyboard shortcuts: Ctrl+N (new), Ctrl+Shift+N (quick), Ctrl+K (command palette), Ctrl+L (library), Ctrl+Tab (cycle), Ctrl+W (close), Ctrl+S (save), Ctrl+P (screenshots), Ctrl+B (broadcast), Ctrl+1-9 (focus pane), Escape (close modals)
 - Session tab bar for 5+ sessions with page-based visibility
 - Session library search/filter + sort (recent, A-Z, project) + markdown export
 - Animated x grid with radial wave animation on empty state (mix-blend-mode: difference)
@@ -36,12 +36,16 @@ Tauri v2 + React desktop app that runs multiple Claude Code sessions in parallel
 - **Sound alerts**: two-tone chime when Claude finishes sustained work (>10s), toggleable from status bar
 - **Status bar**: session count, active count, CPU/RAM/GPU/VRAM usage, CPU/GPU temps, app uptime, sound toggle
 - **System monitoring**: real-time stats via sysinfo crate + nvidia-smi, polled every 2s
+- **Broadcast mode** (Ctrl+B): type once, send to all active sessions simultaneously
+- **Git integration**: branch name + dirty indicator per session working dir, polled every 10s
+- **Hotkey pane focus** (Ctrl+1-9): jump to specific pane by number
+- **Power clock**: 24h digital clock with centiseconds on empty state, red glow, kanji subtitle
 
 ## Known Issues
 - [ ] Ember/hue strip has rendering artifacts in WebView2 — needs investigation
 - [ ] Display gamma flicker at certain opacity levels (Windows CABC — hardware level, not fixable in app)
 
-## Completed Build Queue (v0.5.0)
+## Completed Build Queue (v0.6.0)
 - [x] Drag-to-Reorder Panes
 - [x] Pinned Sessions
 - [x] System Tray
@@ -53,14 +57,15 @@ Tauri v2 + React desktop app that runs multiple Claude Code sessions in parallel
 - [x] Auto-naming Quick Sessions
 - [x] Sound Alerts
 - [x] System Monitoring Status Bar
+- [x] Broadcast Mode
+- [x] Git Integration
+- [x] Hotkey Pane Focus
+- [x] Power Clock
 
 ## Future Ideas
-- [ ] Hotkey pane focus (Ctrl+1/2/3/4)
 - [ ] Prompt snippets / saved prompts
 - [ ] Session templates (pre-configured working dir + prompt)
 - [ ] Split/resize panes with draggable dividers
-- [ ] Broadcast mode (type once, send to all sessions)
-- [ ] Git integration (branch/status per session working dir)
 - [ ] Network stats in status bar
 - [ ] Custom themes / color schemes
 - [ ] Multi-monitor support / detachable panes

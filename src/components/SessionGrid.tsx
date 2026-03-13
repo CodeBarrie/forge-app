@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useCallback, useLayoutEffect } from "react";
+import { useState, useRef, useMemo, useCallback, useLayoutEffect, useEffect } from "react";
 import { Session } from "../types";
 import { SessionPane } from "./SessionPane";
 
@@ -20,6 +20,31 @@ function buildPlusGrid() {
     }
   }
   return items;
+}
+
+function PowerClock() {
+  const [time, setTime] = useState("");
+
+  useEffect(() => {
+    const tick = () => {
+      const now = new Date();
+      const h = String(now.getHours()).padStart(2, "0");
+      const m = String(now.getMinutes()).padStart(2, "0");
+      const cs = String(Math.floor(now.getMilliseconds() / 10)).padStart(2, "0");
+      setTime(`${h}:${m}.${cs}`);
+    };
+    tick();
+    const timer = setInterval(tick, 30);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="power-clock">
+      <div className="power-clock-time">{time}</div>
+      <div className="power-clock-label">CHRONOS ADVANCES</div>
+      <div className="power-clock-kanji">時は進む</div>
+    </div>
+  );
 }
 
 interface SessionGridProps {
@@ -221,6 +246,7 @@ export function SessionGrid({ sessions, focusedSessionId, bgOpacity, soundEnable
           ))}
         </div>
         <div className="empty-glyph">⬡</div>
+        <PowerClock />
         <h2>No active sessions</h2>
         <p>Launch a session to open a Claude Code terminal</p>
         <div className="empty-actions">

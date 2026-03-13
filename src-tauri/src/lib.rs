@@ -31,6 +31,7 @@ pub fn run() {
             check_dir_exists,
             export_transcript,
             get_system_stats,
+            get_git_info,
         ])
         .setup(|app| {
             // Show and focus main window
