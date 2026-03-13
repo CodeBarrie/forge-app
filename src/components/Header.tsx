@@ -13,6 +13,8 @@ interface HeaderProps {
   onToggleSymbols: () => void;
   showGridLines: boolean;
   onToggleGridLines: () => void;
+  layoutMode: string;
+  onLayoutChange: (mode: string) => void;
 }
 
 export function Header({
@@ -28,6 +30,8 @@ export function Header({
   onToggleSymbols,
   showGridLines,
   onToggleGridLines,
+  layoutMode,
+  onLayoutChange,
 }: HeaderProps) {
   const [displayOpen, setDisplayOpen] = useState(false);
   const displayRef = useRef<HTMLDivElement>(null);
@@ -50,6 +54,8 @@ export function Header({
         <span className="forge-logo">⬡</span>
         <span className="forge-name">FORGE</span>
         <span className="forge-tagline">by CodeBarrie</span>
+        <span className="header-date-sep">|</span>
+        <span className="header-date">{(() => { const d = new Date(); return `${String(d.getFullYear()).slice(-2)}.${String(d.getMonth()+1).padStart(2,"0")}.${String(d.getDate()).padStart(2,"0")}`; })()}</span>
       </div>
       <div className="forge-status">
         {sessionCount > 0 && (
@@ -87,6 +93,30 @@ export function Header({
                 <input type="checkbox" checked={showGridLines} onChange={onToggleGridLines} />
                 <span>Grid Lines</span>
               </label>
+              <div className="display-divider" />
+              <h4>Layout</h4>
+              <div className="layout-grid">
+                {[
+                  { id: "auto", label: "Auto", icon: "⊞" },
+                  { id: "2x1", label: "2 Col", icon: "▥" },
+                  { id: "1x2", label: "2 Row", icon: "▤" },
+                  { id: "3x1", label: "3 Col", icon: "⫼" },
+                  { id: "1x3", label: "3 Row", icon: "≡" },
+                  { id: "quad", label: "2×2", icon: "⊞" },
+                  { id: "3x2", label: "3×2", icon: "⊟" },
+                  { id: "2x3", label: "2×3", icon: "⊡" },
+                ].map((l) => (
+                  <button
+                    key={l.id}
+                    className={`layout-btn ${layoutMode === l.id ? "active" : ""}`}
+                    onClick={() => onLayoutChange(l.id)}
+                    title={l.label}
+                  >
+                    <span className="layout-icon">{l.icon}</span>
+                    <span className="layout-label">{l.label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>

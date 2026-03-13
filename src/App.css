@@ -179,6 +179,20 @@ body {
   text-transform: uppercase;
 }
 
+.header-date-sep {
+  color: #ffffff;
+  margin: 0 6px;
+  font-size: 12px;
+}
+
+.header-date {
+  color: #ef4444;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
 .forge-status {
   flex: 1;
   display: flex;
@@ -274,7 +288,7 @@ body {
   border: 1px solid var(--border-mid);
   border-radius: var(--radius-md);
   padding: 12px 16px;
-  min-width: 180px;
+  min-width: 220px;
   z-index: 100;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
 }
@@ -329,6 +343,54 @@ body {
 
 .display-toggle input[type="checkbox"]:checked::after {
   transform: translateX(14px);
+}
+
+.display-divider {
+  height: 1px;
+  background: var(--border-dim);
+  margin: 8px 0;
+}
+
+.layout-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 4px;
+}
+
+.layout-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 2px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.layout-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--border-mid);
+  color: var(--text-primary);
+}
+
+.layout-btn.active {
+  background: var(--accent-fire-dim);
+  border-color: var(--accent-fire);
+  color: var(--accent-fire);
+}
+
+.layout-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.layout-label {
+  font-size: 9px;
+  letter-spacing: 0.3px;
 }
 
 /* ─── Buttons ───────────────────────────────────── */
@@ -492,6 +554,42 @@ button { cursor: pointer; font-family: var(--font-mono); border: none; }
 .session-grid.grid-quad {
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
+}
+
+/* Side by side (2 columns) */
+.session-grid.grid-2x1 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr;
+}
+
+/* Stacked (2 rows) */
+.session-grid.grid-1x2 {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+/* Three columns */
+.session-grid.grid-3x1 {
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr;
+}
+
+/* Three rows */
+.session-grid.grid-1x3 {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr 1fr 1fr;
+}
+
+/* Six-up (3 columns, 2 rows) */
+.session-grid.grid-3x2 {
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+/* 2 columns, 3 rows */
+.session-grid.grid-2x3 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr 1fr;
 }
 
 /* ─── Grid Wrapper ─────────────────────────────── */

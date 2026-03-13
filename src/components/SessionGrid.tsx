@@ -52,6 +52,7 @@ interface SessionGridProps {
   focusedSessionId: string | null;
   bgOpacity: number;
   soundEnabled: boolean;
+  layoutMode: string;
   showSymbols: boolean;
   showGridLines: boolean;
   onRemove: (id: string) => void;
@@ -62,7 +63,7 @@ interface SessionGridProps {
   onSessionFocus: (id: string) => void;
 }
 
-export function SessionGrid({ sessions, focusedSessionId, bgOpacity, soundEnabled, showSymbols, showGridLines, onRemove, onUpdate, onReorder, onNewSession, onQuickSession, onSessionFocus }: SessionGridProps) {
+export function SessionGrid({ sessions, focusedSessionId, bgOpacity, soundEnabled, layoutMode, showSymbols, showGridLines, onRemove, onUpdate, onReorder, onNewSession, onQuickSession, onSessionFocus }: SessionGridProps) {
   const [visiblePage, setVisiblePage] = useState(0);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [dropIdx, setDropIdx] = useState<number | null>(null);
@@ -261,16 +262,23 @@ export function SessionGrid({ sessions, focusedSessionId, bgOpacity, soundEnable
     );
   }
 
-  const showTabs = sessions.length > 4;
-  const visibleStart = visiblePage * 4;
+  const pageSize = layoutMode === "3x2" ? 6
+    : layoutMode === "2x3" ? 6
+    : layoutMode === "3x1" ? 3
+    : layoutMode === "1x3" ? 3
+    : 4;
+  const showTabs = sessions.length > pageSize;
+  const visibleStart = visiblePage * pageSize;
   const visibleIds = new Set(
     showTabs
-      ? sessions.slice(visibleStart, visibleStart + 4).map((s) => s.id)
+      ? sessions.slice(visibleStart, visibleStart + pageSize).map((s) => s.id)
       : sessions.map((s) => s.id)
   );
 
   const visibleCount = visibleIds.size;
-  const layoutClass = visibleCount === 1
+  const layoutClass = layoutMode !== "auto"
+    ? `grid-${layoutMode}`
+    : visibleCount === 1
     ? "grid-solo"
     : visibleCount === 2
     ? "grid-split"
@@ -288,7 +296,7 @@ export function SessionGrid({ sessions, focusedSessionId, bgOpacity, soundEnable
                 key={s.id}
                 className={`session-tab ${focusedSessionId === s.id ? "active" : ""} ${visibleIds.has(s.id) ? "visible" : ""}`}
                 onClick={() => {
-                  const page = Math.floor(i / 4);
+                  const page = Math.floor(i / pageSize);
                   setVisiblePage(page);
                   onSessionFocus(s.id);
                 }}

@@ -21,10 +21,11 @@ export default function App() {
   const [screenshotsOpen, setScreenshotsOpen] = useState(false);
   const [consoleOpen, setConsoleOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
-  const [showSymbols, setShowSymbols] = useState(true);
-  const [showGridLines, setShowGridLines] = useState(true);
+  const [showSymbols, setShowSymbols] = useState(() => localStorage.getItem("forge-show-symbols") !== "false");
+  const [showGridLines, setShowGridLines] = useState(() => localStorage.getItem("forge-show-grid") !== "false");
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [broadcastOpen, setBroadcastOpen] = useState(false);
+  const [layoutMode, setLayoutMode] = useState<string>(() => localStorage.getItem("forge-layout") || "auto");
   const [soundEnabled, setSoundEnabled] = useState(() => {
     const saved = localStorage.getItem("forge-sound-enabled");
     return saved !== null ? saved === "true" : true;
@@ -164,10 +165,11 @@ export default function App() {
     return () => { if (unlisten) unlisten(); };
   }, [quickSession]);
 
-  // ── Persist sound setting ─────────────────────────────────────────
-  useEffect(() => {
-    localStorage.setItem("forge-sound-enabled", String(soundEnabled));
-  }, [soundEnabled]);
+  // ── Persist settings ─────────────────────────────────────────────
+  useEffect(() => { localStorage.setItem("forge-sound-enabled", String(soundEnabled)); }, [soundEnabled]);
+  useEffect(() => { localStorage.setItem("forge-show-symbols", String(showSymbols)); }, [showSymbols]);
+  useEffect(() => { localStorage.setItem("forge-show-grid", String(showGridLines)); }, [showGridLines]);
+  useEffect(() => { localStorage.setItem("forge-layout", layoutMode); }, [layoutMode]);
 
   // ── Command palette actions ───────────────────────────────────────────
   const commandActions: CommandAction[] = useMemo(() => [
@@ -278,6 +280,8 @@ export default function App() {
         onToggleSymbols={() => setShowSymbols((v) => !v)}
         showGridLines={showGridLines}
         onToggleGridLines={() => setShowGridLines((v) => !v)}
+        layoutMode={layoutMode}
+        onLayoutChange={setLayoutMode}
       />
       <div className="ember-strip" />
       {broadcastOpen && (
@@ -293,6 +297,7 @@ export default function App() {
           focusedSessionId={focusedSessionId}
           bgOpacity={windowOpacity}
           soundEnabled={soundEnabled}
+          layoutMode={layoutMode}
           showSymbols={showSymbols}
           showGridLines={showGridLines}
           onRemove={removeSession}

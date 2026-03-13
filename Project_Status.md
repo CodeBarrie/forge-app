@@ -1,11 +1,11 @@
 # Forge — Project Status
 
-## Current State (v0.6.0)
-Tauri v2 + React desktop app that runs multiple Claude Code sessions in parallel within embedded xterm.js terminals. Full-featured session management with drag-to-reorder, pinned sessions, system tray, color picker, command palette, activity indicators, toast notifications, system monitoring status bar, auto-naming, sound alerts, dictation support, broadcast mode, git integration, and hotkey pane focus.
+## Current State (v0.7.0)
+Tauri v2 + React desktop app that runs multiple Claude Code sessions in parallel within embedded xterm.js terminals. Full-featured session management with drag-to-reorder, pinned sessions, system tray, color picker, command palette, activity indicators, toast notifications, system monitoring status bar, auto-naming, sound alerts, dictation support, broadcast mode, git integration, hotkey pane focus, configurable layouts, and persistent display settings.
 
 ## Working
 - Embedded PTY terminals via portable-pty + xterm.js (WebGL renderer with canvas fallback for transparency)
-- Adaptive grid layout (1x1, 1x2, 2x2) with drag-to-reorder
+- Configurable grid layouts: Auto, 2 Col, 2 Row, 3 Col, 3 Row, 2×2, 3×2, 2×3
 - Session creation with default working dir (`__CLAUDE ZONE`) + project presets
 - Claude Code launches clean (nesting detection bypass)
 - Session save on close with AI-generated summaries (Anthropic API)
@@ -17,12 +17,13 @@ Tauri v2 + React desktop app that runs multiple Claude Code sessions in parallel
 - Background-only transparency slider (text/UI stays crisp, WebGL auto-toggles for alpha support)
 - Dark title bar, animated pastel gradient on FORGE wordmark, Quick Session button, and empty state
 - Rainbow hue-cycling glass strip between header and content
+- Header date display (YY.MM.DD format, bright red)
 - Visual polish: glow effects, animated logo, hover states, entrance animations, white-bordered buttons
 - Keyboard shortcuts: Ctrl+N (new), Ctrl+Shift+N (quick), Ctrl+K (command palette), Ctrl+L (library), Ctrl+Tab (cycle), Ctrl+W (close), Ctrl+S (save), Ctrl+P (screenshots), Ctrl+B (broadcast), Ctrl+1-9 (focus pane), Escape (close modals)
-- Session tab bar for 5+ sessions with page-based visibility
+- Session tab bar for 5+ sessions with page-based visibility (page size adapts to layout)
 - Session library search/filter + sort (recent, A-Z, project) + markdown export
 - Animated x grid with radial wave animation on empty state (mix-blend-mode: difference)
-- Display settings popover: independent toggles for x symbols and grid lines
+- Display settings popover: toggles for symbols/grid lines + layout selector, all persistent
 - Grid lines at 2x density with responsive alignment on resize
 - **Drag-to-reorder panes**: drag session panes to swap positions, visual drop indicator
 - **Pinned sessions**: pin toggle on pane header, persist to localStorage, auto-restore on app launch
@@ -40,12 +41,14 @@ Tauri v2 + React desktop app that runs multiple Claude Code sessions in parallel
 - **Git integration**: branch name + dirty indicator per session working dir, polled every 10s
 - **Hotkey pane focus** (Ctrl+1-9): jump to specific pane by number
 - **Power clock**: 24h digital clock with centiseconds on empty state, red glow, kanji subtitle
+- **Configurable layouts**: 8 layout modes selectable from Display popover, persistent
+- **Persistent display settings**: symbols, grid lines, layout, sound all saved to localStorage
 
 ## Known Issues
 - [ ] Ember/hue strip has rendering artifacts in WebView2 — needs investigation
 - [ ] Display gamma flicker at certain opacity levels (Windows CABC — hardware level, not fixable in app)
 
-## Completed Build Queue (v0.6.0)
+## Completed Build Queue (v0.7.0)
 - [x] Drag-to-Reorder Panes
 - [x] Pinned Sessions
 - [x] System Tray
@@ -61,6 +64,9 @@ Tauri v2 + React desktop app that runs multiple Claude Code sessions in parallel
 - [x] Git Integration
 - [x] Hotkey Pane Focus
 - [x] Power Clock
+- [x] Configurable Layouts
+- [x] Persistent Display Settings
+- [x] Header Date Display
 
 ## Future Ideas
 - [ ] Prompt snippets / saved prompts
