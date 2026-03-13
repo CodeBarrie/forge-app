@@ -18,6 +18,11 @@ interface SessionPaneProps {
   onFocus: () => void;
 }
 
+const SESSION_COLORS = [
+  "#f97316", "#3b82f6", "#4ade80", "#c084fc",
+  "#f87171", "#fbbf24", "#22d3ee", "#f472b6",
+];
+
 export function SessionPane({ session, isFocused, bgOpacity, onUpdate, onClose, onFocus }: SessionPaneProps) {
   const termRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<Terminal | null>(null);
@@ -25,10 +30,12 @@ export function SessionPane({ session, isFocused, bgOpacity, onUpdate, onClose, 
   const [exited, setExited] = useState(false);
   const [ready, setReady] = useState(false);
   const [autosaveFlash, setAutosaveFlash] = useState(false);
+  const [colorPickerOpen, setColorPickerOpen] = useState(false);
   const transcriptRef = useRef<string>("");
   const startedRef = useRef(false);
   const claudeSessionIdRef = useRef<string | null>(session.claudeSessionId || null);
   const webglRef = useRef<WebglAddon | null>(null);
+  const activityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!termRef.current) return;
@@ -145,6 +152,12 @@ export function SessionPane({ session, isFocused, bgOpacity, onUpdate, onClose, 
       setReady(true);
       setExited(false);
       onUpdate({ status: "active", lastActiveAt: Date.now() });
+
+      // Idle detection: mark idle after 3s of no output
+      if (activityTimerRef.current) clearTimeout(activityTimerRef.current);
+      activityTimerRef.current = setTimeout(() => {
+        onUpdate({ status: "idle" });
+      }, 3000);
 
       // Schedule one redraw during the first 8 seconds of startup only
       if (!startupRedrawDone) {
@@ -416,12 +429,43 @@ export function SessionPane({ session, isFocused, bgOpacity, onUpdate, onClose, 
       <div className="session-pane-header" style={{ position: "relative" }}>
         {isFocused && <span className="session-target-badge">target</span>}
         <div className="session-meta">
-          <span className="session-indicator" style={{ backgroundColor: statusColor }} />
+          <span className={`session-indicator ${session.status === "active" ? "pulse" : ""}`} style={{ backgroundColor: statusColor }} />
           <span className="session-label">{session.label}</span>
           <span className="session-project" style={session.color ? { color: session.color } : undefined}>{session.project}</span>
         </div>
         <div className="session-controls">
           {exited && <span className="session-exited">exited</span>}
+          <div className="color-picker-wrap">
+            <button
+              className="btn-color"
+              onClick={() => setColorPickerOpen((v) => !v)}
+              title="Session color"
+            >
+              <span className="color-swatch" style={{ backgroundColor: session.color || "#f97316" }} />
+            </button>
+            {colorPickerOpen && (
+              <div className="color-picker-popover">
+                {SESSION_COLORS.map((c) => (
+                  <button
+                    key={c}
+                    className={`color-option ${session.color === c ? "active" : ""}`}
+                    style={{ backgroundColor: c }}
+                    onClick={() => {
+                      onUpdate({ color: c });
+                      setColorPickerOpen(false);
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+          <button
+            className={`btn-pin ${session.pinned ? "pinned" : ""}`}
+            onClick={() => onUpdate({ pinned: !session.pinned })}
+            title={session.pinned ? "Unpin session" : "Pin session"}
+          >
+            {session.pinned ? "pinned" : "pin"}
+          </button>
           <button
             className="btn-save"
             onClick={handleSave}

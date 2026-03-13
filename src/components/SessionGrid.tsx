@@ -1,24 +1,20 @@
-import { useState, useMemo } from "react";
+import { useState, useRef, useMemo, useCallback, useLayoutEffect } from "react";
 import { Session } from "../types";
 import { SessionPane } from "./SessionPane";
 
 // Generate a grid of "+" with wave-delay metadata
 const COLS = 28;
 const ROWS = 18;
-const CYCLE = 4; // seconds per full animation cycle
 
 function buildPlusGrid() {
-  // Radial wave expanding from bottom-right corner
   const originCol = COLS - 1;
   const originRow = ROWS - 1;
-  // Max distance is to the opposite corner (top-left)
   const maxDist = Math.sqrt(originCol ** 2 + originRow ** 2);
 
   const items: { key: number; delay: number }[] = [];
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
       const dist = Math.sqrt((c - originCol) ** 2 + (r - originRow) ** 2);
-      // Tight spread so a big chunk spins at once — fat wave
       const delay = (dist / maxDist) * 1.2;
       items.push({ key: r * COLS + c, delay });
     }
@@ -34,17 +30,180 @@ interface SessionGridProps {
   showGridLines: boolean;
   onRemove: (id: string) => void;
   onUpdate: (id: string, updates: Partial<Session>) => void;
+  onReorder: (fromIdx: number, toIdx: number) => void;
   onNewSession: () => void;
   onQuickSession: () => void;
   onSessionFocus: (id: string) => void;
 }
 
-export function SessionGrid({ sessions, focusedSessionId, bgOpacity, showSymbols, showGridLines, onRemove, onUpdate, onNewSession, onQuickSession, onSessionFocus }: SessionGridProps) {
-  // For 5+ sessions, show a tab bar and display up to 4 visible panes at a time
+export function SessionGrid({ sessions, focusedSessionId, bgOpacity, showSymbols, showGridLines, onRemove, onUpdate, onReorder, onNewSession, onQuickSession, onSessionFocus }: SessionGridProps) {
   const [visiblePage, setVisiblePage] = useState(0);
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [dropIdx, setDropIdx] = useState<number | null>(null);
 
-  // Regenerate wave origin every mount so the corner is random each time
+  // Pointer-based drag state (refs to avoid stale closures)
+  const dragRef = useRef<{
+    idx: number;
+    startX: number;
+    startY: number;
+    active: boolean;
+    ghost: HTMLDivElement | null;
+  } | null>(null);
+  const dropRef = useRef<number | null>(null);
+  const onReorderRef = useRef(onReorder);
+  onReorderRef.current = onReorder;
+
+  // FLIP animation: snapshot positions before reorder, animate after
+  const rectsRef = useRef<Map<string, DOMRect>>(new Map());
+  const flipPending = useRef(false);
+
+  // Snapshot current positions before a reorder
+  const snapshotPositions = useCallback(() => {
+    const map = new Map<string, DOMRect>();
+    document.querySelectorAll<HTMLDivElement>("[data-slot-id]").forEach((el) => {
+      const id = el.getAttribute("data-slot-id")!;
+      map.set(id, el.getBoundingClientRect());
+    });
+    rectsRef.current = map;
+    flipPending.current = true;
+  }, []);
+
+  // After render, animate from old position to new
+  useLayoutEffect(() => {
+    if (!flipPending.current) return;
+    flipPending.current = false;
+    const oldRects = rectsRef.current;
+    if (oldRects.size === 0) return;
+
+    document.querySelectorAll<HTMLDivElement>("[data-slot-id]").forEach((el) => {
+      const id = el.getAttribute("data-slot-id")!;
+      const oldRect = oldRects.get(id);
+      if (!oldRect) return;
+      const newRect = el.getBoundingClientRect();
+      const dx = oldRect.left - newRect.left;
+      const dy = oldRect.top - newRect.top;
+      if (dx === 0 && dy === 0) return;
+
+      // Invert: jump to old position
+      el.style.transform = `translate(${dx}px, ${dy}px)`;
+      el.style.transition = "none";
+
+      // Play: animate to new position
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          el.style.transition = "transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)";
+          el.style.transform = "";
+        });
+      });
+    });
+  }, [sessions]);
+
   const plusGrid = useMemo(() => buildPlusGrid(), []);
+
+  const cleanupDrag = useCallback(() => {
+    if (dragRef.current?.ghost) {
+      dragRef.current.ghost.remove();
+    }
+    dragRef.current = null;
+    dropRef.current = null;
+    setDragIdx(null);
+    setDropIdx(null);
+    document.body.style.userSelect = "";
+    document.body.style.cursor = "";
+    const cs = document.getElementById("forge-drag-cursor");
+    if (cs) cs.remove();
+  }, []);
+
+  const handleGripPointerDown = useCallback((e: React.PointerEvent, idx: number) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+
+    dragRef.current = {
+      idx,
+      startX: e.clientX,
+      startY: e.clientY,
+      active: false,
+      ghost: null,
+    };
+
+    const onMove = (ev: PointerEvent) => {
+      const d = dragRef.current;
+      if (!d) return;
+      const dx = ev.clientX - d.startX;
+      const dy = ev.clientY - d.startY;
+
+      // 6px threshold to activate
+      if (!d.active && Math.abs(dx) + Math.abs(dy) < 6) return;
+
+      if (!d.active) {
+        d.active = true;
+        setDragIdx(d.idx);
+        document.body.style.userSelect = "none";
+        const cs = document.createElement("style");
+        cs.id = "forge-drag-cursor";
+        cs.textContent = "* { cursor: grabbing !important; }";
+        document.head.appendChild(cs);
+
+        // Create ghost
+        const ghost = document.createElement("div");
+        ghost.className = "drag-ghost";
+        ghost.textContent = sessions[d.idx]?.label || "Session";
+        document.body.appendChild(ghost);
+        d.ghost = ghost;
+      }
+
+      // Move ghost
+      if (d.ghost) {
+        d.ghost.style.left = `${ev.clientX + 12}px`;
+        d.ghost.style.top = `${ev.clientY - 16}px`;
+      }
+
+      // Hit-test: find which slot the cursor is over
+      const slots = document.querySelectorAll<HTMLDivElement>("[data-slot-idx]");
+      let hitIdx: number | null = null;
+      slots.forEach((slot) => {
+        const rect = slot.getBoundingClientRect();
+        if (
+          ev.clientX >= rect.left && ev.clientX <= rect.right &&
+          ev.clientY >= rect.top && ev.clientY <= rect.bottom
+        ) {
+          const si = parseInt(slot.getAttribute("data-slot-idx")!, 10);
+          if (si !== d.idx) hitIdx = si;
+        }
+      });
+      dropRef.current = hitIdx;
+      setDropIdx(hitIdx);
+    };
+
+    const onUp = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+
+      const d = dragRef.current;
+      const target = dropRef.current;
+      if (d?.active && target !== null) {
+        snapshotPositions();
+        onReorderRef.current(d.idx, target);
+      }
+
+      // Fade ghost out
+      if (d?.ghost) {
+        d.ghost.style.transition = "opacity 0.15s, transform 0.15s";
+        d.ghost.style.opacity = "0";
+        d.ghost.style.transform = "scale(0.9)";
+        const g = d.ghost;
+        setTimeout(() => g.remove(), 150);
+        d.ghost = null;
+      }
+
+      cleanupDrag();
+    };
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+  }, [sessions, cleanupDrag, snapshotPositions]);
 
   if (sessions.length === 0) {
     return (
@@ -124,12 +283,20 @@ export function SessionGrid({ sessions, focusedSessionId, bgOpacity, showSymbols
         </div>
       )}
       <div className={`session-grid ${layoutClass}`}>
-        {sessions.map((session) => (
+        {sessions.map((session, i) => (
           <div
             key={session.id}
-            className="session-pane-slot"
+            data-slot-idx={i}
+            data-slot-id={session.id}
+            className={`session-pane-slot ${dragIdx === i ? "dragging" : ""} ${dropIdx === i ? "drop-target" : ""}`}
             style={{ display: visibleIds.has(session.id) ? "flex" : "none" }}
           >
+            <div
+              className="drag-handle"
+              onPointerDown={(e) => handleGripPointerDown(e, i)}
+            >
+              <span className="drag-grip">⋮⋮</span>
+            </div>
             <SessionPane
               session={session}
               isFocused={focusedSessionId === session.id}
