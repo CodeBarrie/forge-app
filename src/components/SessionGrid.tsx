@@ -242,7 +242,7 @@ export function SessionGrid({ sessions, focusedSessionId, bgOpacity, showSymbols
       : sessions.map((s) => s.id)
   );
 
-  const visibleCount = Math.min(sessions.length, 4);
+  const visibleCount = visibleIds.size;
   const layoutClass = visibleCount === 1
     ? "grid-solo"
     : visibleCount === 2
