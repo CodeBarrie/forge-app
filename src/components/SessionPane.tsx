@@ -43,6 +43,10 @@ export function SessionPane({ session, isFocused, bgOpacity, soundEnabled, onUpd
   const activityStartRef = useRef<number | null>(null);
   const userInputBuf = useRef("");
   const autoNamed = useRef(false);
+  const resizingRef = useRef(false);
+  const soundEnabledRef = useRef(soundEnabled);
+  soundEnabledRef.current = soundEnabled;
+
   const [gitBranch, setGitBranch] = useState<string | null>(null);
   const [gitDirty, setGitDirty] = useState(false);
 
@@ -160,6 +164,9 @@ export function SessionPane({ session, isFocused, bgOpacity, soundEnabled, onUpd
       transcriptRef.current += event.payload;
       setReady(true);
       setExited(false);
+      // Skip activity tracking for resize-triggered redraws
+      if (resizingRef.current) return;
+
       onUpdate({ status: "active", lastActiveAt: Date.now() });
 
       // Track when sustained activity started
@@ -170,7 +177,7 @@ export function SessionPane({ session, isFocused, bgOpacity, soundEnabled, onUpd
       activityTimerRef.current = setTimeout(() => {
         // Play chime if Claude was active for >10s (sustained work finished)
         const activeFor = activityStartRef.current ? Date.now() - activityStartRef.current : 0;
-        if (activeFor > 10_000 && soundEnabled) {
+        if (activeFor > 30_000 && soundEnabledRef.current) {
           playChime();
         }
         activityStartRef.current = null;
@@ -225,12 +232,14 @@ export function SessionPane({ session, isFocused, bgOpacity, soundEnabled, onUpd
       }
     });
 
-    // Handle resize
+    // Handle resize — flag to suppress activity detection during redraws
     const resizeObserver = new ResizeObserver(() => {
+      resizingRef.current = true;
       try {
         fit.fit();
         reportSize();
       } catch {}
+      setTimeout(() => { resizingRef.current = false; }, 500);
     });
     resizeObserver.observe(termRef.current);
 
