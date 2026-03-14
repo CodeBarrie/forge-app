@@ -2511,3 +2511,331 @@ button { cursor: pointer; font-family: var(--font-mono); border: none; }
 .app.fb-open .status-bar {
   margin-left: 280px;
 }
+
+/* ─── Prompt Templates ─────────────────────────── */
+.prompt-templates-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 200;
+  display: flex;
+  justify-content: center;
+  padding-top: 80px;
+  animation: fadeIn 0.1s ease;
+}
+
+.prompt-templates-modal {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-lg);
+  width: 580px;
+  max-height: 560px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+  animation: slideDown 0.15s ease;
+}
+
+.pt-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--border-dim);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.pt-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pt-icon {
+  color: var(--accent-fire);
+  font-size: 16px;
+}
+
+.pt-title {
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text-primary);
+}
+
+.pt-count {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.pt-search-row {
+  display: flex;
+  gap: 8px;
+}
+
+.pt-search {
+  flex: 1;
+  background: var(--bg-base);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-sm);
+  padding: 7px 10px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.pt-search:focus {
+  border-color: var(--accent-fire);
+}
+
+.pt-new-btn {
+  background: var(--accent-fire);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 7px 14px;
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+}
+
+.pt-new-btn:hover {
+  opacity: 0.85;
+}
+
+.pt-category-filters {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.pt-cat-btn {
+  background: var(--bg-raised);
+  border: 1px solid var(--border-dim);
+  border-radius: 12px;
+  padding: 3px 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.pt-cat-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.pt-cat-btn.active {
+  background: var(--cat-color, var(--accent-fire));
+  color: #fff;
+  border-color: transparent;
+}
+
+/* ─── Form ─── */
+.pt-form {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-dim);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--bg-base);
+  flex-shrink: 0;
+}
+
+.pt-form-input,
+.pt-form-select {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-sm);
+  padding: 7px 10px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  outline: none;
+}
+
+.pt-form-input:focus,
+.pt-form-select:focus,
+.pt-form-textarea:focus {
+  border-color: var(--accent-fire);
+}
+
+.pt-form-select {
+  cursor: pointer;
+}
+
+.pt-form-select option {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+.pt-form-textarea {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-sm);
+  padding: 7px 10px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  outline: none;
+  resize: vertical;
+  min-height: 60px;
+}
+
+.pt-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.pt-form-cancel {
+  background: none;
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-sm);
+  padding: 5px 12px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.pt-form-cancel:hover {
+  color: var(--text-primary);
+  border-color: var(--border-mid);
+}
+
+.pt-form-save {
+  background: var(--accent-fire);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 5px 14px;
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.pt-form-save:hover {
+  opacity: 0.85;
+}
+
+.pt-form-save:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ─── Template List ─── */
+.pt-list {
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pt-card {
+  background: var(--bg-raised);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  transition: border-color 0.15s;
+}
+
+.pt-card:hover {
+  border-color: var(--border-mid);
+}
+
+.pt-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.pt-card-name {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.pt-card-tag {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 8px;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pt-card-preview {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin-bottom: 8px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.pt-card-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.pt-use-btn {
+  background: rgba(249, 115, 22, 0.15);
+  border: 1px solid rgba(249, 115, 22, 0.3);
+  border-radius: var(--radius-sm);
+  padding: 3px 12px;
+  color: var(--accent-fire);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.pt-use-btn:hover {
+  background: rgba(249, 115, 22, 0.25);
+  border-color: var(--accent-fire);
+}
+
+.pt-delete-btn {
+  background: none;
+  border: 1px solid var(--border-dim);
+  border-radius: var(--radius-sm);
+  padding: 3px 10px;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.pt-delete-btn:hover {
+  color: var(--accent-molten);
+  border-color: var(--accent-molten);
+}
+
+.pt-empty {
+  text-align: center;
+  padding: 32px;
+  color: var(--text-dim);
+  font-size: 13px;
+}

@@ -481,6 +481,73 @@ pub fn read_file_preview(path: String) -> Result<String, String> {
     }
 }
 
+// ── Prompt Templates ─────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PromptTemplate {
+    pub id: String,
+    pub name: String,
+    pub text: String,
+    pub category: String,
+}
+
+#[tauri::command]
+pub fn save_prompt_template(app: AppHandle, template: PromptTemplate) -> Result<(), String> {
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(&data_dir).map_err(|e| e.to_string())?;
+
+    let path = data_dir.join("prompt_templates.json");
+    let mut templates: Vec<PromptTemplate> = if path.exists() {
+        let json = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+        serde_json::from_str(&json).unwrap_or_default()
+    } else {
+        vec![]
+    };
+
+    // Upsert: replace if same id exists, otherwise push
+    if let Some(existing) = templates.iter_mut().find(|t| t.id == template.id) {
+        *existing = template;
+    } else {
+        templates.push(template);
+    }
+
+    let json = serde_json::to_string_pretty(&templates).map_err(|e| e.to_string())?;
+    std::fs::write(path, json).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn load_prompt_templates(app: AppHandle) -> Result<Vec<PromptTemplate>, String> {
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let path = data_dir.join("prompt_templates.json");
+
+    if !path.exists() {
+        return Ok(vec![]);
+    }
+
+    let json = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+    let templates: Vec<PromptTemplate> = serde_json::from_str(&json).unwrap_or_default();
+    Ok(templates)
+}
+
+#[tauri::command]
+pub fn delete_prompt_template(app: AppHandle, template_id: String) -> Result<(), String> {
+    let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    let path = data_dir.join("prompt_templates.json");
+
+    if !path.exists() {
+        return Ok(());
+    }
+
+    let json = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+    let mut templates: Vec<PromptTemplate> = serde_json::from_str(&json).unwrap_or_default();
+    templates.retain(|t| t.id != template_id);
+
+    let json = serde_json::to_string_pretty(&templates).map_err(|e| e.to_string())?;
+    std::fs::write(path, json).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 fn find_claude_binary() -> Option<String> {

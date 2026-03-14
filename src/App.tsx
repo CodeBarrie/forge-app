@@ -6,6 +6,7 @@ import { ConsoleLog, interceptConsole } from "./components/ConsoleLog";
 import { Header } from "./components/Header";
 import { NewSessionModal } from "./components/NewSessionModal";
 import { CommandPalette, CommandAction } from "./components/CommandPalette";
+import { PromptTemplates } from "./components/PromptTemplates";
 import { ToastContainer, ToastMessage } from "./components/Toast";
 import { StatusBar } from "./components/StatusBar";
 import { BroadcastBar } from "./components/BroadcastBar";
@@ -27,6 +28,7 @@ export default function App() {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [broadcastOpen, setBroadcastOpen] = useState(false);
   const [fileBrowserOpen, setFileBrowserOpen] = useState(false);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
   const [layoutMode, setLayoutMode] = useState<string>(() => localStorage.getItem("forge-layout") || "auto");
   const [soundEnabled, setSoundEnabled] = useState(() => {
     const saved = localStorage.getItem("forge-sound-enabled");
@@ -183,6 +185,7 @@ export default function App() {
     { id: "toggle-symbols", label: `${showSymbols ? "Hide" : "Show"} Background Symbols`, action: () => setShowSymbols((v) => !v) },
     { id: "toggle-grid", label: `${showGridLines ? "Hide" : "Show"} Grid Lines`, action: () => setShowGridLines((v) => !v) },
     { id: "toggle-files", label: `${fileBrowserOpen ? "Close" : "Open"} File Browser`, shortcut: "Ctrl+E", action: () => setFileBrowserOpen((v) => !v) },
+    { id: "open-templates", label: "Open Prompt Templates", shortcut: "Ctrl+T", action: () => setTemplatesOpen(true) },
     { id: "broadcast", label: `${broadcastOpen ? "Close" : "Open"} Broadcast Mode`, shortcut: "Ctrl+B", action: () => setBroadcastOpen((v) => !v) },
     { id: "close-all", label: "Close All Sessions", action: () => {
       sessions.forEach((s) => window.dispatchEvent(new CustomEvent("forge-close-session", { detail: s.id })));
@@ -207,6 +210,9 @@ export default function App() {
       } else if (e.ctrlKey && e.key === "b" && !isInput) {
         e.preventDefault();
         setBroadcastOpen((v) => !v);
+      } else if (e.ctrlKey && e.key === "t" && !isInput) {
+        e.preventDefault();
+        setTemplatesOpen((v) => !v);
       } else if (e.ctrlKey && e.key === "n" && !isInput) {
         e.preventDefault();
         setNewSessionOpen(true);
@@ -242,6 +248,7 @@ export default function App() {
         window.dispatchEvent(new CustomEvent("forge-save-session", { detail: focusedSessionId }));
       } else if (e.key === "Escape") {
         if (commandPaletteOpen) setCommandPaletteOpen(false);
+        else if (templatesOpen) setTemplatesOpen(false);
         else if (libraryOpen) setLibraryOpen(false);
         else if (newSessionOpen) setNewSessionOpen(false);
         else if (screenshotsOpen) setScreenshotsOpen(false);
@@ -251,7 +258,7 @@ export default function App() {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [focusedSessionId, libraryOpen, newSessionOpen, screenshotsOpen, consoleOpen, commandPaletteOpen, fileBrowserOpen, quickSession]);
+  }, [focusedSessionId, libraryOpen, newSessionOpen, screenshotsOpen, consoleOpen, commandPaletteOpen, templatesOpen, fileBrowserOpen, quickSession]);
 
   const broadcastToAll = useCallback((text: string) => {
     sessions.forEach((s) => {
@@ -284,6 +291,7 @@ export default function App() {
         onQuickSession={quickSession}
         onOpenLibrary={() => setLibraryOpen(true)}
         onOpenConsole={() => setConsoleOpen(true)}
+        onOpenTemplates={() => setTemplatesOpen(true)}
         onOpenScreenshots={() => setScreenshotsOpen(true)}
         onToggleFiles={() => setFileBrowserOpen((v) => !v)}
         fileBrowserOpen={fileBrowserOpen}
@@ -349,6 +357,14 @@ export default function App() {
         <CommandPalette
           actions={commandActions}
           onClose={() => setCommandPaletteOpen(false)}
+        />
+      )}
+      {templatesOpen && (
+        <PromptTemplates
+          onClose={() => setTemplatesOpen(false)}
+          focusedSessionId={focusedSessionId}
+          sessions={sessions}
+          addToast={addToast}
         />
       )}
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />

@@ -43,3 +43,10 @@ export interface Project {
 }
 
 export type GridLayout = "solo" | "split" | "quad" | "flex";
+
+export interface PromptTemplate {
+  id: string;
+  name: string;
+  text: string;
+  category: string;
+}

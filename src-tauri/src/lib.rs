@@ -34,6 +34,9 @@ pub fn run() {
             get_git_info,
             list_directory,
             read_file_preview,
+            save_prompt_template,
+            load_prompt_templates,
+            delete_prompt_template,
         ])
         .setup(|app| {
             // Show and focus main window
