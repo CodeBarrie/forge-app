@@ -41,6 +41,7 @@ pub fn run() {
             get_git_changed_files,
             git_stage_file,
             git_unstage_file,
+            fetch_ai_headlines,
         ])
         .setup(|app| {
             // Show and focus main window

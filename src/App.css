@@ -86,7 +86,7 @@ body {
 
 /* ─── Glass Hue Strip ────────────────────────────── */
 .ember-strip {
-  height: 20px;
+  height: 30px;
   flex-shrink: 0;
   position: relative;
   overflow: hidden;
@@ -127,6 +127,47 @@ body {
 @keyframes hue-scroll {
   0% { background-position: 0% 0%; }
   100% { background-position: 300% 0%; }
+}
+
+/* ─── News Ticker ──────────────────────────────── */
+.news-ticker {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  z-index: 1;
+}
+
+.news-ticker-track {
+  display: flex;
+  white-space: nowrap;
+  animation: ticker-scroll var(--ticker-speed, 60s) linear infinite;
+}
+
+.news-ticker-content {
+  padding-right: 120px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  color: rgba(255, 255, 255, 0.95);
+  text-transform: uppercase;
+}
+
+.news-ticker-link {
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.news-ticker-link:hover {
+  color: rgba(255, 255, 255, 1);
+  text-decoration: underline;
+}
+
+@keyframes ticker-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
 }
 
 .forge-wordmark {
@@ -829,7 +870,7 @@ button { cursor: pointer; font-family: var(--font-mono); border: none; }
 .plus-grid {
   position: absolute;
   inset: 0;
-  top: -30px;
+  top: -46px;
   pointer-events: none;
   display: grid;
   grid-template-columns: repeat(28, 1fr);
@@ -866,16 +907,122 @@ button { cursor: pointer; font-family: var(--font-mono); border: none; }
   100% { transform: rotate(360deg); }
 }
 
-.empty-glyph {
-  font-size: 56px;
-  color: #fff;
+/* ─── Forge Orb ────────────────────────────────── */
+.forge-orb {
+  position: relative;
+  width: 160px;
+  height: 160px;
   margin-bottom: 12px;
-  pointer-events: none;
   margin-top: -16px;
-  mix-blend-mode: screen;
-  filter: drop-shadow(0 0 16px rgba(255, 255, 255, 0.5)) drop-shadow(0 0 40px rgba(255, 255, 255, 0.2));
-  animation: logo-breathe 4s ease-in-out infinite;
   z-index: 1;
+  pointer-events: none;
+  transform: scale(1.75);
+}
+
+/* Sphere core */
+.orb-sphere {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 76px;
+  height: 76px;
+  transform: translate(-50%, calc(-50% - 5px));
+  border-radius: 50%;
+  background: transparent;
+  box-shadow:
+    0 0 20px rgba(255, 255, 255, 0.15),
+    0 0 50px rgba(255, 255, 255, 0.05);
+  animation: orb-pulse 4s ease-in-out infinite;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.orb-sphere::before {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #222 0%, #0a0a0a 50%, #000 100%);
+  z-index: -1;
+}
+
+/* Canvas wireframe inside sphere */
+.orb-wireframe-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+
+/* Orbital rings — flat ellipses rotated in 2D */
+.orb-ring {
+  position: absolute;
+  top: calc(50% - 7px);
+  left: 50%;
+  border-radius: 50%;
+  border: 1px solid;
+}
+
+.orb-ring-back {
+  clip-path: inset(0 0 50% 0);
+  z-index: 0;
+}
+
+.orb-ring-front {
+  clip-path: inset(50% 0 0 0);
+  z-index: 3;
+}
+
+.orb-sphere {
+  z-index: 2;
+}
+
+.orb-ring-1 {
+  width: 100px;
+  height: 22px;
+  transform: translate(-50%, -50%) rotate(-1deg);
+  border-color: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.4), 0 0 20px rgba(255, 255, 255, 0.16), inset 0 0 10px rgba(255, 255, 255, 0.12);
+  animation: ring-wobble-1 8s ease-in-out infinite;
+}
+
+.orb-ring-2 {
+  width: 130px;
+  height: 29px;
+  transform: translate(-50%, -50%) rotate(1deg);
+  border-color: rgba(255, 255, 255, 0.55);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.36), 0 0 20px rgba(255, 255, 255, 0.12), inset 0 0 10px rgba(255, 255, 255, 0.1);
+  animation: ring-wobble-2 10s ease-in-out infinite;
+}
+
+.orb-ring-3 {
+  width: 180px;
+  height: 38px;
+  transform: translate(-50%, -50%) rotate(1deg);
+  border-color: rgba(255, 255, 255, 0.45);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.32), 0 0 20px rgba(255, 255, 255, 0.1), inset 0 0 10px rgba(255, 255, 255, 0.08);
+  animation: ring-wobble-3 13s ease-in-out infinite;
+}
+
+@keyframes orb-pulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(255, 255, 255, 0.15), 0 0 50px rgba(255, 255, 255, 0.05); }
+  50% { box-shadow: 0 0 30px rgba(255, 255, 255, 0.25), 0 0 70px rgba(255, 255, 255, 0.08); }
+}
+
+@keyframes ring-wobble-1 {
+  0%, 100% { transform: translate(-50%, -50%) rotate(-4deg); }
+  50% { transform: translate(-50%, -50%) rotate(4deg); }
+}
+
+@keyframes ring-wobble-2 {
+  0%, 100% { transform: translate(-50%, -50%) rotate(5deg); }
+  50% { transform: translate(-50%, -50%) rotate(-5deg); }
+}
+
+@keyframes ring-wobble-3 {
+  0%, 100% { transform: translate(-50%, -50%) rotate(3deg); }
+  50% { transform: translate(-50%, -50%) rotate(-6deg); }
 }
 
 /* ─── Power Clock ─────────────────────────────── */

@@ -2,6 +2,79 @@ import { useState, useRef, useMemo, useCallback, useLayoutEffect, useEffect } fr
 import { Session } from "../types";
 import { SessionPane } from "./SessionPane";
 
+// ── Wireframe Sphere (canvas-based, math-projected) ──────────────────────
+function WireframeSphere() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const size = 76 * 2; // 2x for retina
+    canvas.width = size;
+    canvas.height = size;
+    const R = size / 2 - 4; // radius with padding
+    const cx = size / 2;
+    const cy = size / 2;
+    const numMeridians = 16;
+    const numParallels = 7;
+    let rotation = 0;
+
+    function draw() {
+      ctx!.clearRect(0, 0, size, size);
+      ctx!.strokeStyle = "rgba(255, 255, 255, 0.3)";
+      ctx!.lineWidth = 1.2;
+
+      // Draw latitude lines (parallels)
+      for (let i = 1; i <= numParallels; i++) {
+        const lat = (Math.PI * i) / (numParallels + 1) - Math.PI / 2;
+        const r = R * Math.cos(lat);
+        const y = cy - R * Math.sin(lat);
+        ctx!.beginPath();
+        ctx!.ellipse(cx, y, r, r * 0.3, 0, 0, Math.PI * 2);
+        ctx!.stroke();
+      }
+
+      // Draw meridian lines (longitudes) — these rotate
+      for (let i = 0; i < numMeridians; i++) {
+        const lon = (2 * Math.PI * i) / numMeridians + rotation;
+        const sinLon = Math.sin(lon);
+        const cosLon = Math.cos(lon);
+
+        // Only draw front-facing meridians (cosLon > 0 means front)
+        const alpha = Math.max(0, cosLon) * 0.4 + 0.05;
+        ctx!.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
+
+        ctx!.beginPath();
+        for (let j = 0; j <= 64; j++) {
+          const lat = (Math.PI * j) / 64 - Math.PI / 2;
+          const x = cx + R * Math.cos(lat) * sinLon;
+          const y = cy - R * Math.sin(lat);
+          if (j === 0) ctx!.moveTo(x, y);
+          else ctx!.lineTo(x, y);
+        }
+        ctx!.stroke();
+      }
+
+      rotation += 0.003; // very slow rotation
+      animId = requestAnimationFrame(draw);
+    }
+
+    let animId = requestAnimationFrame(draw);
+    return () => cancelAnimationFrame(animId);
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="orb-wireframe-canvas"
+      style={{ width: 76, height: 76 }}
+    />
+  );
+}
+
 // Generate a grid of "+" with wave-delay metadata
 const COLS = 28;
 const ROWS = 18;
@@ -52,6 +125,7 @@ interface SessionGridProps {
   focusedSessionId: string | null;
   bgOpacity: number;
   soundEnabled: boolean;
+  terminalFontSize: number;
   layoutMode: string;
   showSymbols: boolean;
   showGridLines: boolean;
@@ -64,7 +138,7 @@ interface SessionGridProps {
   onDropPromptFile?: (filePath: string) => void;
 }
 
-export function SessionGrid({ sessions, focusedSessionId, bgOpacity, soundEnabled, layoutMode, showSymbols, showGridLines, onRemove, onUpdate, onReorder, onNewSession, onQuickSession, onSessionFocus, onDropPromptFile }: SessionGridProps) {
+export function SessionGrid({ sessions, focusedSessionId, bgOpacity, soundEnabled, terminalFontSize, layoutMode, showSymbols, showGridLines, onRemove, onUpdate, onReorder, onNewSession, onQuickSession, onSessionFocus, onDropPromptFile }: SessionGridProps) {
   const [visiblePage, setVisiblePage] = useState(0);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [dropIdx, setDropIdx] = useState<number | null>(null);
@@ -247,7 +321,20 @@ export function SessionGrid({ sessions, focusedSessionId, bgOpacity, soundEnable
             </span>
           ))}
         </div>
-        <div className="empty-glyph">⬡</div>
+        <div className="forge-orb">
+          {/* Back halves of rings — behind sphere */}
+          <div className="orb-ring orb-ring-1 orb-ring-back" />
+          <div className="orb-ring orb-ring-2 orb-ring-back" />
+          <div className="orb-ring orb-ring-3 orb-ring-back" />
+          {/* Sphere with canvas wireframe */}
+          <div className="orb-sphere">
+            <WireframeSphere />
+          </div>
+          {/* Front halves of rings — on top of sphere */}
+          <div className="orb-ring orb-ring-1 orb-ring-front" />
+          <div className="orb-ring orb-ring-2 orb-ring-front" />
+          <div className="orb-ring orb-ring-3 orb-ring-front" />
+        </div>
         <PowerClock />
         <h2>No active sessions</h2>
         <p>Launch a session to open a Claude Code terminal</p>
@@ -338,6 +425,7 @@ export function SessionGrid({ sessions, focusedSessionId, bgOpacity, soundEnable
               isFocused={focusedSessionId === session.id}
               bgOpacity={bgOpacity}
               soundEnabled={soundEnabled}
+              terminalFontSize={terminalFontSize}
               onClose={() => onRemove(session.id)}
               onUpdate={(updates) => onUpdate(session.id, updates)}
               onFocus={() => onSessionFocus(session.id)}

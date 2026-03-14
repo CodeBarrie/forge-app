@@ -21,6 +21,10 @@ interface HeaderProps {
   onLayoutChange: (mode: string) => void;
   guiScale: number;
   onGuiScaleChange: (value: number) => void;
+  termFontSize: number;
+  onTermFontSizeChange: (value: number) => void;
+  tickerSpeed: number;
+  onTickerSpeedChange: (value: number) => void;
 }
 
 export function Header({
@@ -44,6 +48,10 @@ export function Header({
   onLayoutChange,
   guiScale,
   onGuiScaleChange,
+  termFontSize,
+  onTermFontSizeChange,
+  tickerSpeed,
+  onTickerSpeedChange,
 }: HeaderProps) {
   const [displayOpen, setDisplayOpen] = useState(false);
   const displayRef = useRef<HTMLDivElement>(null);
@@ -121,6 +129,21 @@ export function Header({
                 <span className="gui-scale-label gui-scale-large">A</span>
               </div>
               <div className="display-divider" />
+              <h4>Terminal Size — {termFontSize}px</h4>
+              <div className="gui-scale-control">
+                <span className="gui-scale-label">A</span>
+                <input
+                  type="range"
+                  className="gui-scale-slider"
+                  min="10"
+                  max="24"
+                  step="1"
+                  value={termFontSize}
+                  onChange={(e) => onTermFontSizeChange(parseInt(e.target.value))}
+                />
+                <span className="gui-scale-label gui-scale-large">A</span>
+              </div>
+              <div className="display-divider" />
               <h4>Layout</h4>
               <div className="layout-grid">
                 {[
@@ -143,6 +166,21 @@ export function Header({
                     <span className="layout-label">{l.label}</span>
                   </button>
                 ))}
+              </div>
+              <div className="display-divider" />
+              <h4>Ticker Speed — {tickerSpeed}s</h4>
+              <div className="gui-scale-control">
+                <span className="gui-scale-label">▶▶</span>
+                <input
+                  type="range"
+                  className="gui-scale-slider"
+                  min="10"
+                  max="240"
+                  step="5"
+                  value={tickerSpeed}
+                  onChange={(e) => onTickerSpeedChange(parseInt(e.target.value))}
+                />
+                <span className="gui-scale-label">▶</span>
               </div>
             </div>
           )}

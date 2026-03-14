@@ -551,6 +551,126 @@ pub fn delete_prompt_template(app: AppHandle, template_id: String) -> Result<(),
     Ok(())
 }
 
+// ── HTML Entity Decoding ────────────────────────────────────────────────────
+
+fn decode_html_entities(s: &str) -> String {
+    let mut result = s.to_string();
+    // Named entities
+    result = result.replace("&amp;", "&");
+    result = result.replace("&lt;", "<");
+    result = result.replace("&gt;", ">");
+    result = result.replace("&quot;", "\"");
+    result = result.replace("&apos;", "'");
+    result = result.replace("&rsquo;", "\u{2019}");
+    result = result.replace("&lsquo;", "\u{2018}");
+    result = result.replace("&rdquo;", "\u{201C}");
+    result = result.replace("&ldquo;", "\u{201D}");
+    result = result.replace("&mdash;", "\u{2014}");
+    result = result.replace("&ndash;", "\u{2013}");
+    result = result.replace("&hellip;", "\u{2026}");
+    result = result.replace("&nbsp;", " ");
+    // Numeric entities: &#8217; &#x2019; etc.
+    let re_dec = regex::Regex::new(r"&#(\d+);").unwrap();
+    result = re_dec.replace_all(&result, |caps: &regex::Captures| {
+        caps[1].parse::<u32>()
+            .ok()
+            .and_then(char::from_u32)
+            .map(|c| c.to_string())
+            .unwrap_or_else(|| caps[0].to_string())
+    }).to_string();
+    let re_hex = regex::Regex::new(r"&#x([0-9a-fA-F]+);").unwrap();
+    result = re_hex.replace_all(&result, |caps: &regex::Captures| {
+        u32::from_str_radix(&caps[1], 16)
+            .ok()
+            .and_then(char::from_u32)
+            .map(|c| c.to_string())
+            .unwrap_or_else(|| caps[0].to_string())
+    }).to_string();
+    result
+}
+
+// ── News Ticker ─────────────────────────────────────────────────────────────
+
+#[derive(Serialize, Clone)]
+pub struct Headline {
+    pub title: String,
+    pub url: String,
+}
+
+#[tauri::command]
+pub async fn fetch_ai_headlines() -> Result<Vec<Headline>, String> {
+    let feeds = [
+        "https://techcrunch.com/category/artificial-intelligence/feed/",
+        "https://feeds.arstechnica.com/arstechnica/technology-lab",
+    ];
+
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(8))
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let mut headlines: Vec<Headline> = Vec::new();
+
+    for url in &feeds {
+        if let Ok(resp) = client.get(*url).send().await {
+            if let Ok(text) = resp.text().await {
+                let mut in_item = false;
+                let mut current_title: Option<String> = None;
+                let mut current_link: Option<String> = None;
+                for line in text.lines() {
+                    let trimmed = line.trim();
+                    if trimmed.contains("<item") {
+                        in_item = true;
+                        current_title = None;
+                        current_link = None;
+                    }
+                    if in_item {
+                        if current_title.is_none() {
+                            if let Some(start) = trimmed.find("<title>") {
+                                if let Some(end) = trimmed.find("</title>") {
+                                    let title = &trimmed[start + 7..end];
+                                    let title = title
+                                        .replace("<![CDATA[", "")
+                                        .replace("]]>", "")
+                                        .trim()
+                                        .to_string();
+                                    let title = decode_html_entities(&title);
+                                    if !title.is_empty() {
+                                        current_title = Some(title);
+                                    }
+                                }
+                            }
+                        }
+                        if current_link.is_none() {
+                            if let Some(start) = trimmed.find("<link>") {
+                                if let Some(end) = trimmed.find("</link>") {
+                                    let link = trimmed[start + 6..end]
+                                        .replace("<![CDATA[", "")
+                                        .replace("]]>", "")
+                                        .trim()
+                                        .to_string();
+                                    if !link.is_empty() {
+                                        current_link = Some(link);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if trimmed.contains("</item>") {
+                        if let (Some(title), Some(link)) = (current_title.take(), current_link.take()) {
+                            headlines.push(Headline { title, url: link });
+                        }
+                        in_item = false;
+                    }
+                }
+            }
+        }
+    }
+
+    headlines.truncate(20);
+    Ok(headlines)
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 fn find_claude_binary() -> Option<String> {

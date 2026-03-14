@@ -12,6 +12,7 @@ import { StatusBar } from "./components/StatusBar";
 import { BroadcastBar } from "./components/BroadcastBar";
 import { FileBrowser } from "./components/FileBrowser";
 import { DiffViewer } from "./components/DiffViewer";
+import { NewsTicker } from "./components/NewsTicker";
 import { Session } from "./types";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -36,6 +37,14 @@ export default function App() {
   const [guiScale, setGuiScale] = useState(() => {
     const saved = localStorage.getItem("forge-gui-scale");
     return saved ? parseFloat(saved) : 1;
+  });
+  const [termFontSize, setTermFontSize] = useState(() => {
+    const saved = localStorage.getItem("forge-term-font-size");
+    return saved ? parseInt(saved) : 14;
+  });
+  const [tickerSpeed, setTickerSpeed] = useState(() => {
+    const saved = localStorage.getItem("forge-ticker-speed");
+    return saved ? parseInt(saved) : 60;
   });
   const [soundEnabled, setSoundEnabled] = useState(() => {
     const saved = localStorage.getItem("forge-sound-enabled");
@@ -110,6 +119,58 @@ export default function App() {
       }
     });
   }, [handleDropPromptFile]);
+
+  // ── External file drops from Windows Explorer ─────────────────────
+  useEffect(() => {
+    const handleDragOver = (e: DragEvent) => {
+      // Only handle external file drops (not our internal custom drag)
+      if (e.dataTransfer?.types.includes("Files")) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "copy";
+      }
+    };
+
+    const handleDrop = (e: DragEvent) => {
+      if (!e.dataTransfer?.files.length) return;
+      e.preventDefault();
+
+      const file = e.dataTransfer.files[0];
+      // Get the file path — on Windows/Tauri, files have a path property
+      const filePath = (file as any).path || file.name;
+      if (!filePath) return;
+
+      // Find drop target
+      let el = e.target as HTMLElement | null;
+      while (el) {
+        if (el.classList.contains("session-pane")) {
+          const sessionId = el.getAttribute("data-session-id");
+          if (sessionId) {
+            invoke("write_to_session", { sessionId, data: filePath }).catch(() => {});
+          }
+          return;
+        }
+        if (el.classList.contains("grid-empty-state")) {
+          if (filePath.toLowerCase().endsWith(".md")) {
+            handleDropPromptFile(filePath);
+          }
+          return;
+        }
+        el = el.parentElement;
+      }
+
+      // Dropped somewhere else — if there's a focused session, paste there
+      if (focusedSessionId) {
+        invoke("write_to_session", { sessionId: focusedSessionId, data: filePath }).catch(() => {});
+      }
+    };
+
+    document.addEventListener("dragover", handleDragOver);
+    document.addEventListener("drop", handleDrop);
+    return () => {
+      document.removeEventListener("dragover", handleDragOver);
+      document.removeEventListener("drop", handleDrop);
+    };
+  }, [handleDropPromptFile, focusedSessionId]);
 
   const removeSession = useCallback((id: string) => {
     setSessions((prev) => prev.filter((s) => s.id !== id));
@@ -214,6 +275,8 @@ export default function App() {
   useEffect(() => { localStorage.setItem("forge-show-grid", String(showGridLines)); }, [showGridLines]);
   useEffect(() => { localStorage.setItem("forge-layout", layoutMode); }, [layoutMode]);
   useEffect(() => { localStorage.setItem("forge-gui-scale", String(guiScale)); }, [guiScale]);
+  useEffect(() => { localStorage.setItem("forge-term-font-size", String(termFontSize)); }, [termFontSize]);
+  useEffect(() => { localStorage.setItem("forge-ticker-speed", String(tickerSpeed)); }, [tickerSpeed]);
 
   // ── Command palette actions ───────────────────────────────────────────
   const commandActions: CommandAction[] = useMemo(() => [
@@ -351,8 +414,14 @@ export default function App() {
         onLayoutChange={setLayoutMode}
         guiScale={guiScale}
         onGuiScaleChange={setGuiScale}
+        termFontSize={termFontSize}
+        onTermFontSizeChange={setTermFontSize}
+        tickerSpeed={tickerSpeed}
+        onTickerSpeedChange={setTickerSpeed}
       />
-      <div className="ember-strip" />
+      <div className="ember-strip">
+        <NewsTicker speed={tickerSpeed} />
+      </div>
       {broadcastOpen && (
         <BroadcastBar
           sessionCount={sessions.filter((s) => s.status !== "closed").length}
@@ -366,6 +435,7 @@ export default function App() {
           focusedSessionId={focusedSessionId}
           bgOpacity={windowOpacity}
           soundEnabled={soundEnabled}
+          terminalFontSize={termFontSize}
           layoutMode={layoutMode}
           showSymbols={showSymbols}
           showGridLines={showGridLines}

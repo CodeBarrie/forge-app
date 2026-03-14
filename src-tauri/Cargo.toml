@@ -25,6 +25,7 @@ regex = "1"
 uuid = { version = "1", features = ["v4"] }
 tokio = { version = "1", features = ["full"] }
 sysinfo = "0.32"
+reqwest = { version = "0.12", features = ["rustls-tls"], default-features = false }
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.61", features = [

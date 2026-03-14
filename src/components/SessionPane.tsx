@@ -15,6 +15,7 @@ interface SessionPaneProps {
   isFocused: boolean;
   bgOpacity: number;
   soundEnabled: boolean;
+  terminalFontSize: number;
   onClose: () => void;
   onUpdate: (updates: Partial<Session>) => void;
   onFocus: () => void;
@@ -25,7 +26,7 @@ const SESSION_COLORS = [
   "#f87171", "#fbbf24", "#22d3ee", "#f472b6",
 ];
 
-export function SessionPane({ session, isFocused, bgOpacity, soundEnabled, onUpdate, onClose, onFocus }: SessionPaneProps) {
+export function SessionPane({ session, isFocused, bgOpacity, soundEnabled, terminalFontSize, onUpdate, onClose, onFocus }: SessionPaneProps) {
   const termRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<Terminal | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
@@ -56,7 +57,7 @@ export function SessionPane({ session, isFocused, bgOpacity, soundEnabled, onUpd
 
     const term = new Terminal({
       fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",
-      fontSize: 14,
+      fontSize: terminalFontSize,
       lineHeight: 1.0,
       cursorBlink: true,
       cursorStyle: "bar",
@@ -299,6 +300,14 @@ export function SessionPane({ session, isFocused, bgOpacity, soundEnabled, onUpd
       } catch {}
     }
   }, [bgOpacity]);
+
+  // Update terminal font size when slider changes
+  useEffect(() => {
+    const term = xtermRef.current;
+    if (!term) return;
+    term.options.fontSize = terminalFontSize;
+    try { fitRef.current?.fit(); } catch {}
+  }, [terminalFontSize]);
 
   const handleClose = useCallback(() => {
     // Remove from UI immediately — nothing blocks this
