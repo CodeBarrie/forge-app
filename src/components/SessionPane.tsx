@@ -44,6 +44,7 @@ export function SessionPane({ session, isFocused, bgOpacity, soundEnabled, onUpd
   const userInputBuf = useRef("");
   const autoNamed = useRef(false);
   const resizingRef = useRef(false);
+  const initialPromptSent = useRef(false);
   const soundEnabledRef = useRef(soundEnabled);
   soundEnabledRef.current = soundEnabled;
 
@@ -164,6 +165,17 @@ export function SessionPane({ session, isFocused, bgOpacity, soundEnabled, onUpd
       transcriptRef.current += event.payload;
       setReady(true);
       setExited(false);
+
+      // Auto-send initial prompt (from dropped .md file) after Claude is ready
+      if (!initialPromptSent.current && session.initialPrompt) {
+        initialPromptSent.current = true;
+        setTimeout(() => {
+          invoke("write_to_session", {
+            sessionId: session.id,
+            data: session.initialPrompt + "\r",
+          }).catch(() => {});
+        }, 2000);
+      }
       // Skip activity tracking for resize-triggered redraws
       if (resizingRef.current) return;
 
@@ -487,7 +499,10 @@ export function SessionPane({ session, isFocused, bgOpacity, soundEnabled, onUpd
   }[session.status];
 
   return (
-    <div className={`session-pane ${isFocused ? "focused" : ""} ${autosaveFlash ? "autosave-flash" : ""}`}>
+    <div
+      className={`session-pane ${isFocused ? "focused" : ""} ${autosaveFlash ? "autosave-flash" : ""}`}
+      data-session-id={session.id}
+    >
       <div className="session-pane-header" style={{ position: "relative" }}>
         {isFocused && <span className="session-target-badge">target</span>}
         <div className="session-meta">

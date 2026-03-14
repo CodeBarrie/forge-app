@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { startFileDrag } from "../lib/fileDrag";
 
 interface DirEntry {
   name: string;
@@ -56,6 +57,32 @@ function formatSize(bytes: number): string {
 }
 
 export function FileBrowser({ open, onClose }: FileBrowserProps) {
+  const [visible, setVisible] = useState(false);
+  const [closing, setClosing] = useState(false);
+  const [entered, setEntered] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setVisible(true);
+      setClosing(false);
+      setEntered(false);
+      // Wait one frame for DOM mount, then trigger transition
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setEntered(true);
+        });
+      });
+    } else if (visible) {
+      setEntered(false);
+      setClosing(true);
+      const timer = setTimeout(() => {
+        setVisible(false);
+        setClosing(false);
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const [currentPath, setCurrentPath] = useState(DEFAULT_ROOT);
   const [tree, setTree] = useState<TreeNode[]>([]);
   const [filter, setFilter] = useState("");
@@ -196,6 +223,28 @@ export function FileBrowser({ open, onClose }: FileBrowserProps) {
         <div
           className={`fb-tree-item ${previewPath === node.path ? "fb-tree-active" : ""}`}
           style={{ paddingLeft: `${12 + depth * 16}px` }}
+          onMouseDown={(e) => {
+            if (e.button === 0) {
+              // Store for potential drag — only start if mouse moves
+              const startX = e.clientX;
+              const startY = e.clientY;
+              const path = node.path;
+              const name = node.name;
+              const onMove = (me: MouseEvent) => {
+                if (Math.abs(me.clientX - startX) > 5 || Math.abs(me.clientY - startY) > 5) {
+                  document.removeEventListener("mousemove", onMove);
+                  document.removeEventListener("mouseup", onUp);
+                  startFileDrag(path, name, e);
+                }
+              };
+              const onUp = () => {
+                document.removeEventListener("mousemove", onMove);
+                document.removeEventListener("mouseup", onUp);
+              };
+              document.addEventListener("mousemove", onMove);
+              document.addEventListener("mouseup", onUp);
+            }
+          }}
           onClick={() => {
             if (node.isDir) {
               toggleExpand(node.path);
@@ -204,7 +253,7 @@ export function FileBrowser({ open, onClose }: FileBrowserProps) {
             }
           }}
           onContextMenu={(e) => handleContextMenu(e, node.path)}
-          title={`${node.path}\nRight-click to copy path`}
+          title={`${node.path}\nRight-click to copy path · Drag to terminal`}
         >
           <span className={`fb-icon ${node.isDir ? "fb-icon-dir" : "fb-icon-file"}`}>
             {icon}
@@ -223,12 +272,12 @@ export function FileBrowser({ open, onClose }: FileBrowserProps) {
     );
   };
 
-  if (!open) return null;
+  if (!visible) return null;
 
   const previewExt = previewPath?.split(".").pop()?.toLowerCase() || "";
 
   return (
-    <div className="fb-sidebar">
+    <div className={`fb-sidebar${entered ? " fb-entered" : ""}${closing ? " fb-closing" : ""}`}>
       <div className="fb-header">
         <div className="fb-title-row">
           <span className="fb-title">Files</span>

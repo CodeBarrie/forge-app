@@ -15,6 +15,7 @@ import { DiffViewer } from "./components/DiffViewer";
 import { Session } from "./types";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { setDropHandler } from "./lib/fileDrag";
 import "./App.css";
 
 export default function App() {
@@ -73,6 +74,38 @@ export default function App() {
     setSessions((prev) => [...prev, session]);
     addToast("Quick session launched", "success");
   }, [addToast]);
+
+  const handleDropPromptFile = useCallback((filePath: string) => {
+    const fileName = filePath.split("\\").pop()?.replace(/\.md$/i, "") || "Prompt";
+    const now = new Date();
+    const timeLabel = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const session: Session = {
+      id: `session-${Date.now()}`,
+      label: `${fileName} ${timeLabel}`,
+      project: "Untitled",
+      workingDir: "C:\\Users\\Skate\\Documents\\__CLAUDE ZONE",
+      status: "active",
+      createdAt: Date.now(),
+      lastActiveAt: Date.now(),
+      color: "#3b82f6",
+      initialPrompt: filePath,
+    };
+    setSessions((prev) => [...prev, session]);
+    addToast(`Prompt session: ${fileName}`, "success");
+  }, [addToast]);
+
+  // ── Custom drag-and-drop from file browser ──────────────────────────
+  useEffect(() => {
+    setDropHandler((filePath, target) => {
+      if (target === "empty") {
+        if (filePath.toLowerCase().endsWith(".md")) {
+          handleDropPromptFile(filePath);
+        }
+      } else {
+        invoke("write_to_session", { sessionId: target.sessionId, data: filePath }).catch(() => {});
+      }
+    });
+  }, [handleDropPromptFile]);
 
   const removeSession = useCallback((id: string) => {
     setSessions((prev) => prev.filter((s) => s.id !== id));
@@ -335,6 +368,7 @@ export default function App() {
           onNewSession={() => setNewSessionOpen(true)}
           onQuickSession={quickSession}
           onSessionFocus={handleSessionFocus}
+          onDropPromptFile={handleDropPromptFile}
         />
       </main>
       {libraryOpen && (

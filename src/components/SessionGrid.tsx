@@ -30,11 +30,11 @@ function PowerClock() {
       const now = new Date();
       const h = String(now.getHours()).padStart(2, "0");
       const m = String(now.getMinutes()).padStart(2, "0");
-      const cs = String(Math.floor(now.getMilliseconds() / 10)).padStart(2, "0");
-      setTime(`${h}:${m}.${cs}`);
+      const s = String(now.getSeconds()).padStart(2, "0");
+      setTime(`${h}:${m}:${s}`);
     };
     tick();
-    const timer = setInterval(tick, 30);
+    const timer = setInterval(tick, 1000);
     return () => clearInterval(timer);
   }, []);
 
@@ -61,9 +61,10 @@ interface SessionGridProps {
   onNewSession: () => void;
   onQuickSession: () => void;
   onSessionFocus: (id: string) => void;
+  onDropPromptFile?: (filePath: string) => void;
 }
 
-export function SessionGrid({ sessions, focusedSessionId, bgOpacity, soundEnabled, layoutMode, showSymbols, showGridLines, onRemove, onUpdate, onReorder, onNewSession, onQuickSession, onSessionFocus }: SessionGridProps) {
+export function SessionGrid({ sessions, focusedSessionId, bgOpacity, soundEnabled, layoutMode, showSymbols, showGridLines, onRemove, onUpdate, onReorder, onNewSession, onQuickSession, onSessionFocus, onDropPromptFile }: SessionGridProps) {
   const [visiblePage, setVisiblePage] = useState(0);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [dropIdx, setDropIdx] = useState<number | null>(null);

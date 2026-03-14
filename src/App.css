@@ -682,11 +682,13 @@ button { cursor: pointer; font-family: var(--font-mono); border: none; }
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  transition: box-shadow 0.3s ease;
   gap: 8px;
   color: var(--text-dim);
   position: relative;
   overflow: hidden;
 }
+
 
 /* Animated pastel gradient background */
 .grid-empty-state::before {
@@ -748,6 +750,7 @@ button { cursor: pointer; font-family: var(--font-mono); border: none; }
   position: absolute;
   inset: 0;
   top: -30px;
+  pointer-events: none;
   display: grid;
   grid-template-columns: repeat(28, 1fr);
   grid-template-rows: repeat(18, 1fr);
@@ -787,6 +790,7 @@ button { cursor: pointer; font-family: var(--font-mono); border: none; }
   font-size: 56px;
   color: #fff;
   margin-bottom: 12px;
+  pointer-events: none;
   margin-top: -16px;
   mix-blend-mode: screen;
   filter: drop-shadow(0 0 16px rgba(255, 255, 255, 0.5)) drop-shadow(0 0 40px rgba(255, 255, 255, 0.2));
@@ -798,6 +802,7 @@ button { cursor: pointer; font-family: var(--font-mono); border: none; }
 .power-clock {
   z-index: 1;
   text-align: center;
+  pointer-events: none;
   margin: -28px 0 -12px;
 }
 
@@ -842,9 +847,11 @@ button { cursor: pointer; font-family: var(--font-mono); border: none; }
   color: #000;
   letter-spacing: 0.05em;
   z-index: 1;
+  pointer-events: none;
 }
 
 .grid-empty-state p {
+  pointer-events: none;
   font-size: 12px;
   color: rgba(0, 0, 0, 0.6);
   max-width: none;
@@ -1056,7 +1063,9 @@ button { cursor: pointer; font-family: var(--font-mono); border: none; }
   overflow: hidden;
   background: rgba(11, 14, 18, var(--bg-opacity, 1));
   isolation: isolate;
+  position: relative;
 }
+
 
 .terminal-container .xterm {
   height: 100%;
@@ -2253,7 +2262,7 @@ button { cursor: pointer; font-family: var(--font-mono); border: none; }
 /* ─── File Browser Sidebar ────────────────────── */
 .fb-sidebar {
   position: fixed;
-  top: 0;
+  top: 48px;
   left: 0;
   bottom: 0;
   width: 280px;
@@ -2262,13 +2271,18 @@ button { cursor: pointer; font-family: var(--font-mono); border: none; }
   display: flex;
   flex-direction: column;
   z-index: 80;
-  animation: fbSlideIn 0.2s ease;
+  transform: translateX(-280px);
+  transition: transform 0.6s cubic-bezier(0.25, 0.1, 0.25, 1) 0s;
   font-family: var(--font-mono);
 }
 
-@keyframes fbSlideIn {
-  from { transform: translateX(-280px); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
+.fb-sidebar.fb-entered {
+  transform: translateX(0);
+}
+
+.fb-sidebar.fb-closing {
+  transform: translateX(-280px);
+  transition-delay: 0.2s;
 }
 
 .fb-header {
@@ -2504,12 +2518,18 @@ button { cursor: pointer; font-family: var(--font-mono); border: none; }
 }
 
 /* ─── App layout shift when file browser is open ─ */
-.app.fb-open .forge-header,
+.ember-strip,
+.app-main,
+.broadcast-bar {
+  margin-left: 0;
+  transition: margin-left 0.6s cubic-bezier(0.25, 0.1, 0.25, 1) 0s;
+}
+
 .app.fb-open .ember-strip,
 .app.fb-open .app-main,
-.app.fb-open .broadcast-bar,
-.app.fb-open .status-bar {
+.app.fb-open .broadcast-bar {
   margin-left: 280px;
+  transition: margin-left 0.6s cubic-bezier(0.25, 0.1, 0.25, 1) 0.2s;
 }
 
 /* ─── Prompt Templates ─────────────────────────── */
@@ -3213,4 +3233,55 @@ button { cursor: pointer; font-family: var(--font-mono); border: none; }
 
 .dv-line-hunk .dv-line-text {
   color: #c4b5fd;
+}
+
+/* ─── Custom File Drag ──────────────────────────── */
+.file-drag-ghost {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+  background: linear-gradient(
+    135deg,
+    hsl(0, 80%, 70%),
+    hsl(45, 80%, 70%),
+    hsl(120, 70%, 68%),
+    hsl(200, 80%, 70%),
+    hsl(270, 75%, 72%),
+    hsl(330, 80%, 70%)
+  );
+  background-size: 300% 300%;
+  animation: ghost-gradient 3s ease infinite;
+  color: #000;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 4px;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes ghost-gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.session-pane.file-drag-hover {
+  box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.6) !important;
+}
+
+.grid-empty-state.file-drag-hover {
+  box-shadow: inset 0 0 60px rgba(59, 130, 246, 0.15);
+}
+
+.grid-empty-state.file-drag-hover::after {
+  content: "Drop .md to launch prompt session";
+  position: absolute;
+  bottom: 40px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: rgba(59, 130, 246, 0.8);
+  z-index: 10;
+  letter-spacing: 0.05em;
 }

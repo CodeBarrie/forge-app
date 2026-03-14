@@ -103,6 +103,9 @@ pub fn start_session(
         });
     }
 
+    // Run without permission prompts
+    cmd.arg("--dangerously-skip-permissions");
+
     // Remove nesting-detection env vars so Claude Code doesn't think it's inside another session
     for key in &["CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT", "CLAUDE_CODE_SESSION"] {
         cmd.env_remove(key);

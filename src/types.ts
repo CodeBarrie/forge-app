@@ -12,6 +12,7 @@ export interface Session {
   claudeSessionId?: string;
   pid?: number;
   pinned?: boolean;
+  initialPrompt?: string;
 }
 
 export interface PinnedSession {
