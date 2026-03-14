@@ -694,6 +694,95 @@ pub fn get_git_info(working_dir: String) -> Option<GitInfo> {
     Some(GitInfo { branch: Some(branch), dirty, ahead, behind })
 }
 
+// ── Git Diff Commands ─────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ChangedFile {
+    pub path: String,
+    pub status: String,
+}
+
+#[tauri::command]
+pub fn get_git_diff(working_dir: String, file_path: String) -> Result<String, String> {
+    let mut args = vec!["diff".to_string()];
+    if !file_path.is_empty() {
+        args.push("--".to_string());
+        args.push(file_path);
+    }
+
+    let output = std::process::Command::new("git")
+        .args(&args)
+        .current_dir(&working_dir)
+        .output()
+        .map_err(|e| format!("Failed to run git diff: {e}"))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("git diff failed: {stderr}"));
+    }
+
+    Ok(String::from_utf8_lossy(&output.stdout).to_string())
+}
+
+#[tauri::command]
+pub fn get_git_changed_files(working_dir: String) -> Result<Vec<ChangedFile>, String> {
+    let output = std::process::Command::new("git")
+        .args(["status", "--porcelain"])
+        .current_dir(&working_dir)
+        .output()
+        .map_err(|e| format!("Failed to run git status: {e}"))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("git status failed: {stderr}"));
+    }
+
+    let text = String::from_utf8_lossy(&output.stdout);
+    let files: Vec<ChangedFile> = text
+        .lines()
+        .filter(|line| !line.is_empty())
+        .map(|line| {
+            let status = line[..2].trim().to_string();
+            let path = line[3..].to_string();
+            ChangedFile { path, status }
+        })
+        .collect();
+
+    Ok(files)
+}
+
+#[tauri::command]
+pub fn git_stage_file(working_dir: String, file_path: String) -> Result<(), String> {
+    let output = std::process::Command::new("git")
+        .args(["add", &file_path])
+        .current_dir(&working_dir)
+        .output()
+        .map_err(|e| format!("Failed to run git add: {e}"))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("git add failed: {stderr}"));
+    }
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn git_unstage_file(working_dir: String, file_path: String) -> Result<(), String> {
+    let output = std::process::Command::new("git")
+        .args(["restore", "--staged", &file_path])
+        .current_dir(&working_dir)
+        .output()
+        .map_err(|e| format!("Failed to run git restore: {e}"))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("git restore --staged failed: {stderr}"));
+    }
+
+    Ok(())
+}
+
 fn get_gpu_stats() -> (Option<f32>, Option<f32>, Option<f32>, Option<f32>, Option<f32>) {
     // Try nvidia-smi first
     if let Ok(output) = std::process::Command::new("nvidia-smi")

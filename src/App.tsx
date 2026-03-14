@@ -11,6 +11,7 @@ import { ToastContainer, ToastMessage } from "./components/Toast";
 import { StatusBar } from "./components/StatusBar";
 import { BroadcastBar } from "./components/BroadcastBar";
 import { FileBrowser } from "./components/FileBrowser";
+import { DiffViewer } from "./components/DiffViewer";
 import { Session } from "./types";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -29,6 +30,7 @@ export default function App() {
   const [broadcastOpen, setBroadcastOpen] = useState(false);
   const [fileBrowserOpen, setFileBrowserOpen] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
+  const [diffViewerOpen, setDiffViewerOpen] = useState(false);
   const [layoutMode, setLayoutMode] = useState<string>(() => localStorage.getItem("forge-layout") || "auto");
   const [soundEnabled, setSoundEnabled] = useState(() => {
     const saved = localStorage.getItem("forge-sound-enabled");
@@ -187,6 +189,7 @@ export default function App() {
     { id: "toggle-files", label: `${fileBrowserOpen ? "Close" : "Open"} File Browser`, shortcut: "Ctrl+E", action: () => setFileBrowserOpen((v) => !v) },
     { id: "open-templates", label: "Open Prompt Templates", shortcut: "Ctrl+T", action: () => setTemplatesOpen(true) },
     { id: "broadcast", label: `${broadcastOpen ? "Close" : "Open"} Broadcast Mode`, shortcut: "Ctrl+B", action: () => setBroadcastOpen((v) => !v) },
+    { id: "open-diffs", label: "Open Diff Viewer", shortcut: "Ctrl+D", action: () => setDiffViewerOpen(true) },
     { id: "close-all", label: "Close All Sessions", action: () => {
       sessions.forEach((s) => window.dispatchEvent(new CustomEvent("forge-close-session", { detail: s.id })));
     }},
@@ -210,6 +213,9 @@ export default function App() {
       } else if (e.ctrlKey && e.key === "b" && !isInput) {
         e.preventDefault();
         setBroadcastOpen((v) => !v);
+      } else if (e.ctrlKey && e.key === "d" && !isInput) {
+        e.preventDefault();
+        setDiffViewerOpen((v) => !v);
       } else if (e.ctrlKey && e.key === "t" && !isInput) {
         e.preventDefault();
         setTemplatesOpen((v) => !v);
@@ -253,12 +259,13 @@ export default function App() {
         else if (newSessionOpen) setNewSessionOpen(false);
         else if (screenshotsOpen) setScreenshotsOpen(false);
         else if (consoleOpen) setConsoleOpen(false);
+        else if (diffViewerOpen) setDiffViewerOpen(false);
         else if (fileBrowserOpen) setFileBrowserOpen(false);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [focusedSessionId, libraryOpen, newSessionOpen, screenshotsOpen, consoleOpen, commandPaletteOpen, templatesOpen, fileBrowserOpen, quickSession]);
+  }, [focusedSessionId, libraryOpen, newSessionOpen, screenshotsOpen, consoleOpen, commandPaletteOpen, templatesOpen, fileBrowserOpen, diffViewerOpen, quickSession]);
 
   const broadcastToAll = useCallback((text: string) => {
     sessions.forEach((s) => {
@@ -294,6 +301,7 @@ export default function App() {
         onOpenTemplates={() => setTemplatesOpen(true)}
         onOpenScreenshots={() => setScreenshotsOpen(true)}
         onToggleFiles={() => setFileBrowserOpen((v) => !v)}
+        onOpenDiffs={() => setDiffViewerOpen(true)}
         fileBrowserOpen={fileBrowserOpen}
         windowOpacity={windowOpacity}
         onOpacityChange={setWindowOpacity}
@@ -357,6 +365,12 @@ export default function App() {
         <CommandPalette
           actions={commandActions}
           onClose={() => setCommandPaletteOpen(false)}
+        />
+      )}
+      {diffViewerOpen && (
+        <DiffViewer
+          onClose={() => setDiffViewerOpen(false)}
+          sessions={sessions}
         />
       )}
       {templatesOpen && (

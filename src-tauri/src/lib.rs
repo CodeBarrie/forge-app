@@ -37,6 +37,10 @@ pub fn run() {
             save_prompt_template,
             load_prompt_templates,
             delete_prompt_template,
+            get_git_diff,
+            get_git_changed_files,
+            git_stage_file,
+            git_unstage_file,
         ])
         .setup(|app| {
             // Show and focus main window

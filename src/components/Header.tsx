@@ -9,6 +9,7 @@ interface HeaderProps {
   onOpenConsole: () => void;
   onOpenTemplates: () => void;
   onToggleFiles: () => void;
+  onOpenDiffs: () => void;
   fileBrowserOpen: boolean;
   windowOpacity: number;
   onOpacityChange: (value: number) => void;
@@ -29,6 +30,7 @@ export function Header({
   onOpenConsole,
   onOpenTemplates,
   onToggleFiles,
+  onOpenDiffs,
   fileBrowserOpen,
   windowOpacity,
   onOpacityChange,
@@ -128,6 +130,9 @@ export function Header({
         </div>
         <button className={`btn-ghost${fileBrowserOpen ? " active" : ""}`} onClick={onToggleFiles}>
           Files
+        </button>
+        <button className="btn-ghost" onClick={onOpenDiffs}>
+          Diffs
         </button>
         <button className="btn-ghost" onClick={onOpenTemplates}>
           Templates
