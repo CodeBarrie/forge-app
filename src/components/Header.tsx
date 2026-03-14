@@ -19,6 +19,8 @@ interface HeaderProps {
   onToggleGridLines: () => void;
   layoutMode: string;
   onLayoutChange: (mode: string) => void;
+  guiScale: number;
+  onGuiScaleChange: (value: number) => void;
 }
 
 export function Header({
@@ -40,6 +42,8 @@ export function Header({
   onToggleGridLines,
   layoutMode,
   onLayoutChange,
+  guiScale,
+  onGuiScaleChange,
 }: HeaderProps) {
   const [displayOpen, setDisplayOpen] = useState(false);
   const displayRef = useRef<HTMLDivElement>(null);
@@ -102,6 +106,21 @@ export function Header({
                 <span>Grid Lines</span>
               </label>
               <div className="display-divider" />
+              <h4>Text Size — {Math.round(guiScale * 100)}%</h4>
+              <div className="gui-scale-control">
+                <span className="gui-scale-label">A</span>
+                <input
+                  type="range"
+                  className="gui-scale-slider"
+                  min="0.75"
+                  max="1.5"
+                  step="0.05"
+                  value={guiScale}
+                  onChange={(e) => onGuiScaleChange(parseFloat(e.target.value))}
+                />
+                <span className="gui-scale-label gui-scale-large">A</span>
+              </div>
+              <div className="display-divider" />
               <h4>Layout</h4>
               <div className="layout-grid">
                 {[
@@ -128,28 +147,28 @@ export function Header({
             </div>
           )}
         </div>
-        <button className={`btn-ghost${fileBrowserOpen ? " active" : ""}`} onClick={onToggleFiles}>
+        <button className={`btn-ghost${fileBrowserOpen ? " active" : ""}`} onClick={onToggleFiles} title="Files · Ctrl+E">
           Files
         </button>
-        <button className="btn-ghost" onClick={onOpenDiffs}>
+        <button className="btn-ghost" onClick={onOpenDiffs} title="Diffs · Ctrl+D">
           Diffs
         </button>
-        <button className="btn-ghost" onClick={onOpenTemplates}>
+        <button className="btn-ghost" onClick={onOpenTemplates} title="Templates · Ctrl+T">
           Templates
         </button>
-        <button className="btn-ghost" onClick={onOpenConsole}>
+        <button className="btn-ghost" onClick={onOpenConsole} title="Console">
           Console
         </button>
-        <button className="btn-ghost" onClick={onOpenScreenshots}>
+        <button className="btn-ghost" onClick={onOpenScreenshots} title="Screenshots · Ctrl+P">
           Screenshots
         </button>
-        <button className="btn-ghost" onClick={onOpenLibrary}>
+        <button className="btn-ghost" onClick={onOpenLibrary} title="Sessions · Ctrl+L">
           Sessions
         </button>
-        <button className="btn-quick-header" data-label="Quick Session" onClick={onQuickSession}>
+        <button className="btn-quick-header" data-label="Quick Session" onClick={onQuickSession} title="Quick Session · Ctrl+Shift+N">
           Quick Session
         </button>
-        <button className="btn-primary" onClick={onNewSession}>
+        <button className="btn-primary" onClick={onNewSession} title="New Session · Ctrl+N">
           + New
         </button>
       </div>

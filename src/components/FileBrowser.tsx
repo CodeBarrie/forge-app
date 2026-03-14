@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { startFileDrag } from "../lib/fileDrag";
+import { startFileDrag, setRecentCallback } from "../lib/fileDrag";
 
 interface DirEntry {
   name: string;
@@ -86,15 +86,36 @@ export function FileBrowser({ open, onClose }: FileBrowserProps) {
   const [currentPath, setCurrentPath] = useState(DEFAULT_ROOT);
   const [tree, setTree] = useState<TreeNode[]>([]);
   const [filter, setFilter] = useState("");
-  const [previewPath, setPreviewPath] = useState<string | null>(null);
-  const [previewContent, setPreviewContent] = useState<string>("");
-  const [previewLoading, setPreviewLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const filterRef = useRef<HTMLInputElement>(null);
 
+  // Navigation history
+  const [history, setHistory] = useState<string[]>([DEFAULT_ROOT]);
+  const [historyIdx, setHistoryIdx] = useState(0);
+
+  // Recent files (persisted)
+  const [recentFiles, setRecentFiles] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("forge-recent-files") || "[]");
+    } catch { return []; }
+  });
+
+  const addRecent = useCallback((path: string) => {
+    setRecentFiles((prev) => {
+      const next = [path, ...prev.filter((p) => p !== path)].slice(0, 8);
+      localStorage.setItem("forge-recent-files", JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  // Register so drops also add to recents
+  useEffect(() => {
+    setRecentCallback(addRecent);
+  }, [addRecent]);
+
   // Load root directory
-  const loadDirectory = useCallback(async (path: string) => {
+  const loadDirectory = useCallback(async (path: string, addToHistory = true) => {
     setLoading(true);
     setError(null);
     try {
@@ -107,16 +128,43 @@ export function FileBrowser({ open, onClose }: FileBrowserProps) {
       }));
       setTree(nodes);
       setCurrentPath(path);
+      if (addToHistory) {
+        setHistory((prev) => {
+          const trimmed = prev.slice(0, historyIdx + 1);
+          return [...trimmed, path];
+        });
+        setHistoryIdx((prev) => prev + 1);
+      }
     } catch (err) {
       setError(String(err));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [historyIdx]);
+
+  const goBack = useCallback(() => {
+    if (historyIdx > 0) {
+      const newIdx = historyIdx - 1;
+      setHistoryIdx(newIdx);
+      loadDirectory(history[newIdx], false);
+    }
+  }, [historyIdx, history, loadDirectory]);
+
+  const goForward = useCallback(() => {
+    if (historyIdx < history.length - 1) {
+      const newIdx = historyIdx + 1;
+      setHistoryIdx(newIdx);
+      loadDirectory(history[newIdx], false);
+    }
+  }, [historyIdx, history, loadDirectory]);
+
+  const goHome = useCallback(() => {
+    loadDirectory(DEFAULT_ROOT);
+  }, [loadDirectory]);
 
   useEffect(() => {
     if (open) {
-      loadDirectory(currentPath);
+      loadDirectory(currentPath, false);
       setTimeout(() => filterRef.current?.focus(), 100);
     }
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -168,19 +216,6 @@ export function FileBrowser({ open, onClose }: FileBrowserProps) {
     });
   }, []);
 
-  // File preview
-  const openPreview = useCallback(async (path: string) => {
-    setPreviewPath(path);
-    setPreviewLoading(true);
-    try {
-      const content = await invoke<string>("read_file_preview", { path });
-      setPreviewContent(content);
-    } catch (err) {
-      setPreviewContent(`Error reading file: ${err}`);
-    } finally {
-      setPreviewLoading(false);
-    }
-  }, []);
 
   // Right-click to copy path
   const handleContextMenu = useCallback((e: React.MouseEvent, path: string) => {
@@ -194,8 +229,7 @@ export function FileBrowser({ open, onClose }: FileBrowserProps) {
   const navigateToBreadcrumb = useCallback((index: number) => {
     const parts = currentPath.split("\\").filter(Boolean);
     const newPath = parts.slice(0, index + 1).join("\\");
-    loadDirectory(newPath);
-    setPreviewPath(null);
+    loadDirectory(newPath, true);
   }, [currentPath, loadDirectory]);
 
   // Filter tree nodes recursively
@@ -221,7 +255,7 @@ export function FileBrowser({ open, onClose }: FileBrowserProps) {
     return (
       <div key={node.path}>
         <div
-          className={`fb-tree-item ${previewPath === node.path ? "fb-tree-active" : ""}`}
+          className="fb-tree-item"
           style={{ paddingLeft: `${12 + depth * 16}px` }}
           onMouseDown={(e) => {
             if (e.button === 0) {
@@ -249,7 +283,7 @@ export function FileBrowser({ open, onClose }: FileBrowserProps) {
             if (node.isDir) {
               toggleExpand(node.path);
             } else {
-              openPreview(node.path);
+              addRecent(node.path);
             }
           }}
           onContextMenu={(e) => handleContextMenu(e, node.path)}
@@ -259,9 +293,6 @@ export function FileBrowser({ open, onClose }: FileBrowserProps) {
             {icon}
           </span>
           <span className="fb-name">{node.name}</span>
-          {!node.isDir && (
-            <span className="fb-size">{formatSize(node.size)}</span>
-          )}
         </div>
         {node.isDir && node.expanded && node.children && (
           <div className="fb-tree-children">
@@ -274,15 +305,39 @@ export function FileBrowser({ open, onClose }: FileBrowserProps) {
 
   if (!visible) return null;
 
-  const previewExt = previewPath?.split(".").pop()?.toLowerCase() || "";
 
   return (
     <div className={`fb-sidebar${entered ? " fb-entered" : ""}${closing ? " fb-closing" : ""}`}>
       <div className="fb-header">
         <div className="fb-title-row">
+          <div className="fb-nav-buttons">
+            <button
+              className="fb-nav-btn"
+              onClick={goBack}
+              disabled={historyIdx <= 0}
+              title="Back"
+            >
+              {"\u2190"}
+            </button>
+            <button
+              className="fb-nav-btn"
+              onClick={goForward}
+              disabled={historyIdx >= history.length - 1}
+              title="Forward"
+            >
+              {"\u2192"}
+            </button>
+            <button
+              className="fb-nav-btn"
+              onClick={goHome}
+              title="Home"
+            >
+              {"\u2302"}
+            </button>
+          </div>
           <span className="fb-title">Files</span>
-          <button className="fb-close" onClick={onClose} title="Close (Ctrl+E)">
-            \u2715
+          <button className="fb-close" onClick={onClose} title="Close · Ctrl+E">
+            {"\u2715"}
           </button>
         </div>
         <input
@@ -306,6 +361,44 @@ export function FileBrowser({ open, onClose }: FileBrowserProps) {
             </span>
           ))}
         </div>
+        {recentFiles.length > 0 && (
+          <div className="fb-recent">
+            <span className="fb-recent-label">Recent</span>
+            {recentFiles.map((path) => (
+              <button
+                key={path}
+                className="fb-recent-item"
+                onClick={() => {
+                  const dir = path.substring(0, path.lastIndexOf("\\"));
+                  if (dir !== currentPath) loadDirectory(dir);
+                }}
+                onMouseDown={(e) => {
+                  if (e.button === 0) {
+                    const startX = e.clientX;
+                    const startY = e.clientY;
+                    const name = path.split("\\").pop() || "";
+                    const onMove = (me: MouseEvent) => {
+                      if (Math.abs(me.clientX - startX) > 5 || Math.abs(me.clientY - startY) > 5) {
+                        document.removeEventListener("mousemove", onMove);
+                        document.removeEventListener("mouseup", onUp);
+                        startFileDrag(path, name, e);
+                      }
+                    };
+                    const onUp = () => {
+                      document.removeEventListener("mousemove", onMove);
+                      document.removeEventListener("mouseup", onUp);
+                    };
+                    document.addEventListener("mousemove", onMove);
+                    document.addEventListener("mouseup", onUp);
+                  }
+                }}
+                title={path}
+              >
+                {path.split("\\").pop()}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="fb-tree-container">
@@ -314,30 +407,6 @@ export function FileBrowser({ open, onClose }: FileBrowserProps) {
         {!loading && !error && filterNodes(tree, filter).map((node) => renderNode(node, 0))}
       </div>
 
-      {previewPath && (
-        <div className="fb-preview-panel">
-          <div className="fb-preview-header">
-            <span className="fb-preview-name">
-              {previewPath.split("\\").pop()}
-            </span>
-            <button
-              className="fb-close"
-              onClick={() => setPreviewPath(null)}
-            >
-              \u2715
-            </button>
-          </div>
-          <div className="fb-preview-content">
-            {previewLoading ? (
-              <div className="fb-loading">Loading preview...</div>
-            ) : (
-              <pre className={`fb-preview-code lang-${previewExt}`}>
-                {previewContent}
-              </pre>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

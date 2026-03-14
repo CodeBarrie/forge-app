@@ -2,13 +2,19 @@
 // Uses mousedown/mousemove/mouseup instead
 
 type DropHandler = (filePath: string, target: "empty" | { sessionId: string }) => void;
+type RecentCallback = (filePath: string) => void;
 
 let dragPath: string | null = null;
 let ghost: HTMLDivElement | null = null;
 let onDropCallback: DropHandler | null = null;
+let onRecentCallback: RecentCallback | null = null;
 
 export function setDropHandler(handler: DropHandler) {
   onDropCallback = handler;
+}
+
+export function setRecentCallback(handler: RecentCallback) {
+  onRecentCallback = handler;
 }
 
 export function startFileDrag(filePath: string, fileName: string, e: React.MouseEvent) {
@@ -74,9 +80,11 @@ function onMouseUp(e: MouseEvent) {
       const sessionId = pane.getAttribute("data-session-id");
       if (sessionId) {
         onDropCallback(dragPath, { sessionId });
+        if (onRecentCallback) onRecentCallback(dragPath);
       }
     } else if (empty) {
       onDropCallback(dragPath, "empty");
+      if (onRecentCallback) onRecentCallback(dragPath);
     }
   }
 

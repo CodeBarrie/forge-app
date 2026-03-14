@@ -33,6 +33,10 @@ export default function App() {
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [diffViewerOpen, setDiffViewerOpen] = useState(false);
   const [layoutMode, setLayoutMode] = useState<string>(() => localStorage.getItem("forge-layout") || "auto");
+  const [guiScale, setGuiScale] = useState(() => {
+    const saved = localStorage.getItem("forge-gui-scale");
+    return saved ? parseFloat(saved) : 1;
+  });
   const [soundEnabled, setSoundEnabled] = useState(() => {
     const saved = localStorage.getItem("forge-sound-enabled");
     return saved !== null ? saved === "true" : true;
@@ -209,6 +213,7 @@ export default function App() {
   useEffect(() => { localStorage.setItem("forge-show-symbols", String(showSymbols)); }, [showSymbols]);
   useEffect(() => { localStorage.setItem("forge-show-grid", String(showGridLines)); }, [showGridLines]);
   useEffect(() => { localStorage.setItem("forge-layout", layoutMode); }, [layoutMode]);
+  useEffect(() => { localStorage.setItem("forge-gui-scale", String(guiScale)); }, [guiScale]);
 
   // ── Command palette actions ───────────────────────────────────────────
   const commandActions: CommandAction[] = useMemo(() => [
@@ -320,7 +325,7 @@ export default function App() {
   }, [sessions, focusedSessionId]);
 
   return (
-    <div className={`app${fileBrowserOpen ? " fb-open" : ""}`}>
+    <div className={`app${fileBrowserOpen ? " fb-open" : ""}`} style={{ "--gui-scale": guiScale } as React.CSSProperties}>
       <FileBrowser
         open={fileBrowserOpen}
         onClose={() => setFileBrowserOpen(false)}
@@ -344,6 +349,8 @@ export default function App() {
         onToggleGridLines={() => setShowGridLines((v) => !v)}
         layoutMode={layoutMode}
         onLayoutChange={setLayoutMode}
+        guiScale={guiScale}
+        onGuiScaleChange={setGuiScale}
       />
       <div className="ember-strip" />
       {broadcastOpen && (

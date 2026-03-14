@@ -60,7 +60,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  padding-bottom: 24px;
+  padding-bottom: calc(24px * var(--gui-scale, 1));
   background: transparent;
 }
 
@@ -183,6 +183,48 @@ body {
   color: #ffffff;
   margin: 0 6px;
   font-size: 12px;
+}
+
+.header-shortcut {
+  font-size: 9px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.45);
+  padding: 1px 4px;
+  border-radius: 3px;
+  margin-left: 4px;
+  vertical-align: middle;
+  letter-spacing: 0.03em;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.fb-shortcut {
+  font-size: 9px;
+  font-weight: 600;
+  background: rgba(0, 0, 0, 0.12);
+  color: rgba(0, 0, 0, 0.5);
+  padding: 1px 4px;
+  border-radius: 3px;
+  margin-left: 4px;
+  vertical-align: middle;
+  letter-spacing: 0.03em;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.fb-close-btn {
+  background: none;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s;
+}
+
+.fb-close-btn:hover {
+  background: rgba(0, 0, 0, 0.1);
 }
 
 .header-date {
@@ -343,6 +385,44 @@ body {
 
 .display-toggle input[type="checkbox"]:checked::after {
   transform: translateX(14px);
+}
+
+.gui-scale-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.gui-scale-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+}
+
+.gui-scale-large {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.gui-scale-slider {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--border-mid);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.gui-scale-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent-fire);
+  cursor: pointer;
 }
 
 .display-divider {
@@ -909,6 +989,7 @@ button { cursor: pointer; font-family: var(--font-mono); border: none; }
   background: linear-gradient(180deg, rgba(24, 30, 44, var(--bg-opacity, 1)) 0%, rgba(17, 22, 32, var(--bg-opacity, 1)) 100%);
   border-bottom: 1px solid var(--border-dim);
   flex-shrink: 0;
+  zoom: var(--gui-scale, 1);
 }
 
 .session-meta {
@@ -1182,7 +1263,26 @@ button { cursor: pointer; font-family: var(--font-mono); border: none; }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-.library-panel { width: 680px; max-height: 70vh; }
+.library-panel {
+  width: 860px;
+  max-height: 70vh;
+  background: #c8a520;
+  border: 2px solid #a6870a;
+  color: #1a1400;
+
+  --text-primary: #1a1400;
+  --text-secondary: #3d2e00;
+  --text-dim: #5c4a0a;
+  --bg-surface: rgba(0, 0, 0, 0.06);
+  --bg-raised: rgba(0, 0, 0, 0.06);
+  --border-dim: rgba(0, 0, 0, 0.15);
+  --border-mid: rgba(0, 0, 0, 0.2);
+  --border-bright: rgba(0, 0, 0, 0.35);
+  --accent-fire: #5c3d00;
+  --accent-fire-dim: rgba(0, 0, 0, 0.08);
+  --accent-blue: #1a3a6b;
+  --glow-fire: 0 0 12px rgba(0, 0, 0, 0.15);
+}
 .modal-panel   { width: 480px; }
 
 .library-header, .modal-header {
@@ -1266,7 +1366,7 @@ button { cursor: pointer; font-family: var(--font-mono); border: none; }
 .session-card:hover {
   border-color: var(--border-bright);
   transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
 .session-card.selected {
   border-color: var(--accent-fire);
@@ -1304,52 +1404,56 @@ button { cursor: pointer; font-family: var(--font-mono); border: none; }
 
 .btn-resume {
   background: transparent;
-  color: var(--accent-fire);
+  color: #1a1400;
   font-size: 12px;
   font-family: var(--font-mono);
+  font-weight: 600;
   padding: 4px 10px;
-  border: 1px solid var(--accent-fire);
+  border: 1px solid #e85d00;
   border-radius: var(--radius-sm);
   transition: all 0.2s ease;
 }
 .btn-resume:hover {
-  background: var(--accent-fire);
+  background: #e85d00;
   color: #fff;
-  box-shadow: 0 0 16px rgba(249, 115, 22, 0.3);
+  box-shadow: 0 0 16px rgba(232, 93, 0, 0.4);
   transform: translateY(-1px);
 }
 
 .btn-context {
   background: transparent;
-  color: var(--accent-blue);
+  color: #1a1400;
   font-size: 12px;
   font-family: var(--font-mono);
+  font-weight: 600;
   padding: 4px 10px;
-  border: 1px solid var(--accent-blue);
+  border: 1px solid #16a34a;
   border-radius: var(--radius-sm);
   transition: all 0.2s ease;
 }
 .btn-export {
   background: transparent;
-  color: var(--text-dim);
+  color: #1a1400;
   font-size: 10px;
   font-family: var(--font-mono);
+  font-weight: 600;
   padding: 3px 8px;
-  border: 1px solid var(--border-dim);
+  border: 1px solid #2563eb;
   border-radius: var(--radius-sm);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   transition: all 0.15s;
 }
 .btn-export:hover {
-  color: var(--text-secondary);
-  border-color: var(--border-bright);
+  background: #2563eb;
+  color: #fff;
+  box-shadow: 0 0 16px rgba(37, 99, 235, 0.4);
 }
 
 .btn-context:hover {
-  background: var(--accent-blue);
+  background: #16a34a;
   color: #fff;
-  box-shadow: 0 0 16px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 0 16px rgba(22, 163, 74, 0.4);
   transform: translateY(-1px);
 }
 
@@ -2063,6 +2167,7 @@ button { cursor: pointer; font-family: var(--font-mono); border: none; }
   justify-content: space-between;
   padding: 0 12px;
   background: var(--bg-base);
+  zoom: var(--gui-scale, 1);
   border-top: 1px solid var(--border-dim);
   font-family: var(--font-mono);
   font-size: 11px;
@@ -2265,13 +2370,24 @@ button { cursor: pointer; font-family: var(--font-mono); border: none; }
   top: 48px;
   left: 0;
   bottom: 0;
-  width: 280px;
-  background: var(--bg-base);
-  border-right: 1px solid var(--border-dim);
+  width: 360px;
+  background: #c8a520;
+  border-right: 2px solid #a6870a;
   display: flex;
   flex-direction: column;
   z-index: 80;
-  transform: translateX(-280px);
+  color: #1a1400;
+  transform: translateX(-360px);
+
+  /* Override theme vars for dark-on-mustard */
+  --text-primary: #1a1400;
+  --text-secondary: #3d2e00;
+  --text-dim: #5c4a0a;
+  --bg-surface: rgba(0, 0, 0, 0.1);
+  --border-dim: rgba(0, 0, 0, 0.15);
+  --border-mid: rgba(0, 0, 0, 0.25);
+  --accent-fire: #6b4c00;
+  --accent-fire-dim: rgba(0, 0, 0, 0.08);
   transition: transform 0.6s cubic-bezier(0.25, 0.1, 0.25, 1) 0s;
   font-family: var(--font-mono);
 }
@@ -2281,7 +2397,7 @@ button { cursor: pointer; font-family: var(--font-mono); border: none; }
 }
 
 .fb-sidebar.fb-closing {
-  transform: translateX(-280px);
+  transform: translateX(-360px);
   transition-delay: 0.2s;
 }
 
@@ -2289,6 +2405,7 @@ button { cursor: pointer; font-family: var(--font-mono); border: none; }
   padding: 10px 12px 8px;
   border-bottom: 1px solid var(--border-dim);
   flex-shrink: 0;
+  zoom: var(--gui-scale, 1);
 }
 
 .fb-title-row {
@@ -2296,6 +2413,73 @@ button { cursor: pointer; font-family: var(--font-mono); border: none; }
   align-items: center;
   justify-content: space-between;
   margin-bottom: 8px;
+  gap: 8px;
+}
+
+.fb-nav-buttons {
+  display: flex;
+  gap: 2px;
+}
+
+.fb-nav-btn {
+  background: rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  color: #1a1400;
+  font-size: 14px;
+  width: 26px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.fb-nav-btn:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.fb-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.fb-recent {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.fb-recent-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(0, 0, 0, 0.45);
+  margin-right: 2px;
+}
+
+.fb-recent-item {
+  background: rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  color: #1a1400;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.15s;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fb-recent-item:hover {
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .fb-title {
@@ -2320,7 +2504,7 @@ button { cursor: pointer; font-family: var(--font-mono); border: none; }
 
 .fb-close:hover {
   color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.1);
 }
 
 .fb-filter {
@@ -2347,16 +2531,26 @@ button { cursor: pointer; font-family: var(--font-mono); border: none; }
 
 .fb-breadcrumbs {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: 0;
-  font-size: 11px;
-  line-height: 1.6;
+  font-size: 10px;
+  line-height: 1.4;
+  overflow-x: auto;
+  white-space: nowrap;
+  scrollbar-width: none;
+}
+
+.fb-breadcrumbs::-webkit-scrollbar {
+  display: none;
+}
+
+.fb-breadcrumbs > span {
+  flex-shrink: 0;
 }
 
 .fb-bread-sep {
   color: var(--text-dim);
-  margin: 0 2px;
+  margin: 0 1px;
 }
 
 .fb-bread-btn {
@@ -2364,7 +2558,7 @@ button { cursor: pointer; font-family: var(--font-mono); border: none; }
   border: none;
   color: var(--text-secondary);
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 10px;
   cursor: pointer;
   padding: 1px 3px;
   border-radius: 2px;
@@ -2372,8 +2566,8 @@ button { cursor: pointer; font-family: var(--font-mono); border: none; }
 }
 
 .fb-bread-btn:hover {
-  color: var(--accent-fire);
-  background: rgba(249, 115, 22, 0.08);
+  color: #000;
+  background: rgba(0, 0, 0, 0.1);
 }
 
 .fb-tree-container {
@@ -2381,6 +2575,36 @@ button { cursor: pointer; font-family: var(--font-mono); border: none; }
   overflow-y: auto;
   overflow-x: hidden;
   padding: 4px 0;
+  zoom: var(--gui-scale, 1);
+}
+
+/* Sub-folder depth shading */
+.fb-tree-children {
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 2px;
+  margin: 1px 0;
+}
+
+.fb-tree-children .fb-name,
+.fb-tree-children .fb-icon-file {
+  color: #fff;
+}
+
+.fb-tree-children .fb-icon-dir {
+  color: #e8c840;
+}
+
+/* Sub-sub-folder and deeper */
+.fb-tree-children .fb-tree-children {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.fb-tree-children .fb-tree-children .fb-tree-children {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.fb-tree-children .fb-tree-children .fb-tree-children .fb-tree-children {
+  background: rgba(0, 0, 0, 0.10);
 }
 
 .fb-tree-container::-webkit-scrollbar {
@@ -2392,7 +2616,7 @@ button { cursor: pointer; font-family: var(--font-mono); border: none; }
 }
 
 .fb-tree-container::-webkit-scrollbar-thumb {
-  background: var(--border-mid);
+  background: rgba(0, 0, 0, 0.25);
   border-radius: 3px;
 }
 
@@ -2409,7 +2633,7 @@ button { cursor: pointer; font-family: var(--font-mono); border: none; }
 }
 
 .fb-tree-item:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(0, 0, 0, 0.08);
 }
 
 .fb-tree-item.fb-tree-active {
@@ -2491,7 +2715,7 @@ button { cursor: pointer; font-family: var(--font-mono); border: none; }
   flex: 1;
   overflow: auto;
   padding: 8px 12px;
-  background: var(--bg-void);
+  background: rgba(0, 0, 0, 0.08);
 }
 
 .fb-preview-content::-webkit-scrollbar {
@@ -2528,7 +2752,7 @@ button { cursor: pointer; font-family: var(--font-mono); border: none; }
 .app.fb-open .ember-strip,
 .app.fb-open .app-main,
 .app.fb-open .broadcast-bar {
-  margin-left: 280px;
+  margin-left: 360px;
   transition: margin-left 0.6s cubic-bezier(0.25, 0.1, 0.25, 1) 0.2s;
 }
 
