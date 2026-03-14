@@ -9,6 +9,7 @@ import { CommandPalette, CommandAction } from "./components/CommandPalette";
 import { ToastContainer, ToastMessage } from "./components/Toast";
 import { StatusBar } from "./components/StatusBar";
 import { BroadcastBar } from "./components/BroadcastBar";
+import { FileBrowser } from "./components/FileBrowser";
 import { Session } from "./types";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -25,6 +26,7 @@ export default function App() {
   const [showGridLines, setShowGridLines] = useState(() => localStorage.getItem("forge-show-grid") !== "false");
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [broadcastOpen, setBroadcastOpen] = useState(false);
+  const [fileBrowserOpen, setFileBrowserOpen] = useState(false);
   const [layoutMode, setLayoutMode] = useState<string>(() => localStorage.getItem("forge-layout") || "auto");
   const [soundEnabled, setSoundEnabled] = useState(() => {
     const saved = localStorage.getItem("forge-sound-enabled");
@@ -180,11 +182,12 @@ export default function App() {
     { id: "open-console", label: "Open Console", action: () => setConsoleOpen(true) },
     { id: "toggle-symbols", label: `${showSymbols ? "Hide" : "Show"} Background Symbols`, action: () => setShowSymbols((v) => !v) },
     { id: "toggle-grid", label: `${showGridLines ? "Hide" : "Show"} Grid Lines`, action: () => setShowGridLines((v) => !v) },
+    { id: "toggle-files", label: `${fileBrowserOpen ? "Close" : "Open"} File Browser`, shortcut: "Ctrl+E", action: () => setFileBrowserOpen((v) => !v) },
     { id: "broadcast", label: `${broadcastOpen ? "Close" : "Open"} Broadcast Mode`, shortcut: "Ctrl+B", action: () => setBroadcastOpen((v) => !v) },
     { id: "close-all", label: "Close All Sessions", action: () => {
       sessions.forEach((s) => window.dispatchEvent(new CustomEvent("forge-close-session", { detail: s.id })));
     }},
-  ], [quickSession, showSymbols, showGridLines, sessions, broadcastOpen]);
+  ], [quickSession, showSymbols, showGridLines, sessions, broadcastOpen, fileBrowserOpen]);
 
   // ── Global keyboard shortcuts ─────────────────────────────────────────
   useEffect(() => {
@@ -198,6 +201,9 @@ export default function App() {
       } else if (e.ctrlKey && e.key === "k" && !isInput) {
         e.preventDefault();
         setCommandPaletteOpen((v) => !v);
+      } else if (e.ctrlKey && e.key === "e" && !isInput) {
+        e.preventDefault();
+        setFileBrowserOpen((v) => !v);
       } else if (e.ctrlKey && e.key === "b" && !isInput) {
         e.preventDefault();
         setBroadcastOpen((v) => !v);
@@ -240,11 +246,12 @@ export default function App() {
         else if (newSessionOpen) setNewSessionOpen(false);
         else if (screenshotsOpen) setScreenshotsOpen(false);
         else if (consoleOpen) setConsoleOpen(false);
+        else if (fileBrowserOpen) setFileBrowserOpen(false);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [focusedSessionId, libraryOpen, newSessionOpen, screenshotsOpen, consoleOpen, commandPaletteOpen, quickSession]);
+  }, [focusedSessionId, libraryOpen, newSessionOpen, screenshotsOpen, consoleOpen, commandPaletteOpen, fileBrowserOpen, quickSession]);
 
   const broadcastToAll = useCallback((text: string) => {
     sessions.forEach((s) => {
@@ -266,7 +273,11 @@ export default function App() {
   }, [sessions, focusedSessionId]);
 
   return (
-    <div className="app">
+    <div className={`app${fileBrowserOpen ? " fb-open" : ""}`}>
+      <FileBrowser
+        open={fileBrowserOpen}
+        onClose={() => setFileBrowserOpen(false)}
+      />
       <Header
         sessionCount={sessions.length}
         onNewSession={() => setNewSessionOpen(true)}
@@ -274,6 +285,8 @@ export default function App() {
         onOpenLibrary={() => setLibraryOpen(true)}
         onOpenConsole={() => setConsoleOpen(true)}
         onOpenScreenshots={() => setScreenshotsOpen(true)}
+        onToggleFiles={() => setFileBrowserOpen((v) => !v)}
+        fileBrowserOpen={fileBrowserOpen}
         windowOpacity={windowOpacity}
         onOpacityChange={setWindowOpacity}
         showSymbols={showSymbols}

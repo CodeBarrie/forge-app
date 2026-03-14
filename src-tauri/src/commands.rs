@@ -407,6 +407,80 @@ pub fn export_transcript(path: String, label: String, project: String, summary: 
     std::fs::write(&path, content).map_err(|e| e.to_string())
 }
 
+// ── File Browser ─────────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize)]
+pub struct DirEntry {
+    pub name: String,
+    #[serde(rename = "isDir")]
+    pub is_dir: bool,
+    pub size: u64,
+    pub extension: Option<String>,
+}
+
+#[tauri::command]
+pub fn list_directory(path: String) -> Result<Vec<DirEntry>, String> {
+    let dir = std::path::Path::new(&path);
+    if !dir.is_dir() {
+        return Err(format!("Not a directory: {}", path));
+    }
+
+    let mut entries: Vec<DirEntry> = std::fs::read_dir(dir)
+        .map_err(|e| e.to_string())?
+        .filter_map(|entry| {
+            let entry = entry.ok()?;
+            let meta = entry.metadata().ok()?;
+            let name = entry.file_name().to_string_lossy().to_string();
+            // Skip hidden files/dirs (starting with .)
+            if name.starts_with('.') {
+                return None;
+            }
+            let extension = entry.path().extension().map(|e| e.to_string_lossy().to_string());
+            Some(DirEntry {
+                name,
+                is_dir: meta.is_dir(),
+                size: meta.len(),
+                extension,
+            })
+        })
+        .collect();
+
+    // Sort: directories first, then alphabetically (case-insensitive)
+    entries.sort_by(|a, b| {
+        b.is_dir.cmp(&a.is_dir)
+            .then_with(|| a.name.to_lowercase().cmp(&b.name.to_lowercase()))
+    });
+
+    Ok(entries)
+}
+
+#[tauri::command]
+pub fn read_file_preview(path: String) -> Result<String, String> {
+    let file_path = std::path::Path::new(&path);
+    if !file_path.is_file() {
+        return Err(format!("Not a file: {}", path));
+    }
+
+    let content = std::fs::read_to_string(file_path).map_err(|e| {
+        // If it's not valid UTF-8, try reading as lossy
+        format!("Failed to read file: {e}")
+    });
+
+    match content {
+        Ok(text) => {
+            let lines: Vec<&str> = text.lines().take(200).collect();
+            Ok(lines.join("\n"))
+        }
+        Err(_) => {
+            // Try lossy read for binary-ish files
+            let bytes = std::fs::read(file_path).map_err(|e| e.to_string())?;
+            let text = String::from_utf8_lossy(&bytes);
+            let lines: Vec<&str> = text.lines().take(200).collect();
+            Ok(lines.join("\n"))
+        }
+    }
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 fn find_claude_binary() -> Option<String> {
