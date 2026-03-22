@@ -121,10 +121,10 @@ export function Header({
               <h4>Permissions</h4>
               <label className="display-toggle">
                 <input type="checkbox" checked={skipPermissions} onChange={onToggleSkipPermissions} />
-                <span>Skip Permissions</span>
+                <span>Always Skip Permissions</span>
               </label>
               <p style={{ fontSize: "10px", color: "#888", margin: "4px 0 0", lineHeight: 1.3 }}>
-                Passes --dangerously-skip-permissions to Claude Code. Only enable if you trust all configured tools.
+                All sessions will run with --dangerously-skip-permissions. Only enable if you trust all configured MCP servers and tools.
               </p>
               <div className="display-divider" />
               <h4>Text Size — {Math.round(guiScale * 100)}%</h4>
