@@ -46,6 +46,7 @@ export default function App() {
     const saved = localStorage.getItem("forge-ticker-speed");
     return saved ? parseInt(saved) : 60;
   });
+  const [skipPermissions, setSkipPermissions] = useState(() => localStorage.getItem("forge-skip-permissions") === "true");
   const [soundEnabled, setSoundEnabled] = useState(() => {
     const saved = localStorage.getItem("forge-sound-enabled");
     return saved !== null ? saved === "true" : true;
@@ -271,6 +272,7 @@ export default function App() {
 
   // ── Persist settings ─────────────────────────────────────────────
   useEffect(() => { localStorage.setItem("forge-sound-enabled", String(soundEnabled)); }, [soundEnabled]);
+  useEffect(() => { localStorage.setItem("forge-skip-permissions", String(skipPermissions)); }, [skipPermissions]);
   useEffect(() => { localStorage.setItem("forge-show-symbols", String(showSymbols)); }, [showSymbols]);
   useEffect(() => { localStorage.setItem("forge-show-grid", String(showGridLines)); }, [showGridLines]);
   useEffect(() => { localStorage.setItem("forge-layout", layoutMode); }, [layoutMode]);
@@ -418,6 +420,8 @@ export default function App() {
         onTermFontSizeChange={setTermFontSize}
         tickerSpeed={tickerSpeed}
         onTickerSpeedChange={setTickerSpeed}
+        skipPermissions={skipPermissions}
+        onToggleSkipPermissions={() => setSkipPermissions((v) => !v)}
       />
       <div className="ember-strip">
         <NewsTicker speed={tickerSpeed} />

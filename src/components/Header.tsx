@@ -25,6 +25,8 @@ interface HeaderProps {
   onTermFontSizeChange: (value: number) => void;
   tickerSpeed: number;
   onTickerSpeedChange: (value: number) => void;
+  skipPermissions: boolean;
+  onToggleSkipPermissions: () => void;
 }
 
 export function Header({
@@ -52,6 +54,8 @@ export function Header({
   onTermFontSizeChange,
   tickerSpeed,
   onTickerSpeedChange,
+  skipPermissions,
+  onToggleSkipPermissions,
 }: HeaderProps) {
   const [displayOpen, setDisplayOpen] = useState(false);
   const displayRef = useRef<HTMLDivElement>(null);
@@ -113,6 +117,15 @@ export function Header({
                 <input type="checkbox" checked={showGridLines} onChange={onToggleGridLines} />
                 <span>Grid Lines</span>
               </label>
+              <div className="display-divider" />
+              <h4>Permissions</h4>
+              <label className="display-toggle">
+                <input type="checkbox" checked={skipPermissions} onChange={onToggleSkipPermissions} />
+                <span>Skip Permissions</span>
+              </label>
+              <p style={{ fontSize: "10px", color: "#888", margin: "4px 0 0", lineHeight: 1.3 }}>
+                Passes --dangerously-skip-permissions to Claude Code. Only enable if you trust all configured tools.
+              </p>
               <div className="display-divider" />
               <h4>Text Size — {Math.round(guiScale * 100)}%</h4>
               <div className="gui-scale-control">

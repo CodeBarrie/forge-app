@@ -59,6 +59,7 @@ pub fn start_session(
     resume_context: Option<String>,
     claude_session_id: Option<String>,
     cols: Option<u16>,
+    skip_permissions: Option<bool>,
     rows: Option<u16>,
 ) -> Result<(), String> {
     let claude_cmd = find_claude_binary().ok_or("Could not find 'claude' in PATH")?;
@@ -103,8 +104,10 @@ pub fn start_session(
         });
     }
 
-    // Run without permission prompts
-    cmd.arg("--dangerously-skip-permissions");
+    // Only skip permission prompts if explicitly opted in
+    if skip_permissions.unwrap_or(false) {
+        cmd.arg("--dangerously-skip-permissions");
+    }
 
     // Remove nesting-detection env vars so Claude Code doesn't think it's inside another session
     for key in &["CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT", "CLAUDE_CODE_SESSION"] {
