@@ -16,6 +16,7 @@ interface SessionPaneProps {
   bgOpacity: number;
   soundEnabled: boolean;
   terminalFontSize: number;
+  skipPermissions: boolean;
   onClose: () => void;
   onUpdate: (updates: Partial<Session>) => void;
   onFocus: () => void;
@@ -26,7 +27,7 @@ const SESSION_COLORS = [
   "#f87171", "#fbbf24", "#22d3ee", "#f472b6",
 ];
 
-export function SessionPane({ session, isFocused, bgOpacity, soundEnabled, terminalFontSize, onUpdate, onClose, onFocus }: SessionPaneProps) {
+export function SessionPane({ session, isFocused, bgOpacity, soundEnabled, terminalFontSize, skipPermissions, onUpdate, onClose, onFocus }: SessionPaneProps) {
   const termRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<Terminal | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
@@ -110,6 +111,7 @@ export function SessionPane({ session, isFocused, bgOpacity, soundEnabled, termi
         sessionId: session.id,
         cols: term.cols,
         rows: term.rows,
+        skipPermissions: skipPermissions,
       }).catch(() => {});
     };
 
@@ -131,6 +133,7 @@ export function SessionPane({ session, isFocused, bgOpacity, soundEnabled, termi
         claudeSessionId: session.claudeSessionId || null,
         cols: term.cols,
         rows: term.rows,
+        skipPermissions: skipPermissions,
       }).then(() => {
         forgeLog("info", `Session "${session.label}" PTY started successfully`);
       }).catch((err) => {
