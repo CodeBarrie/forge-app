@@ -111,6 +111,7 @@ export function SessionPane({ session, isFocused, bgOpacity, soundEnabled, termi
         sessionId: session.id,
         cols: term.cols,
         rows: term.rows,
+        skipPermissions: skipPermissions,
       }).catch(() => {});
     };
 

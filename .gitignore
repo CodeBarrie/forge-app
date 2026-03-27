@@ -1,8 +1,17 @@
+# Dependencies
 node_modules/
+
+# Build output
 dist/
+
+# Tauri
 src-tauri/target/
 src-tauri/gen/
+
+# Logs
 *.log
+
+# OS files
 .DS_Store
 Thumbs.db
 

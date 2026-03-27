@@ -278,6 +278,7 @@ export default function App() {
   // ── Persist settings ─────────────────────────────────────────────
   useEffect(() => { localStorage.setItem("forge-skip-permissions", String(skipPermissions)); }, [skipPermissions]);
   useEffect(() => { localStorage.setItem("forge-sound-enabled", String(soundEnabled)); }, [soundEnabled]);
+  useEffect(() => { localStorage.setItem("forge-skip-permissions", String(skipPermissions)); }, [skipPermissions]);
   useEffect(() => { localStorage.setItem("forge-show-symbols", String(showSymbols)); }, [showSymbols]);
   useEffect(() => { localStorage.setItem("forge-show-grid", String(showGridLines)); }, [showGridLines]);
   useEffect(() => { localStorage.setItem("forge-layout", layoutMode); }, [layoutMode]);

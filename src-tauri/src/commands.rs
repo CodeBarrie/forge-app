@@ -68,6 +68,7 @@ pub fn start_session(
     resume_context: Option<String>,
     claude_session_id: Option<String>,
     cols: Option<u16>,
+    skip_permissions: Option<bool>,
     rows: Option<u16>,
     skip_permissions: Option<bool>,
 ) -> Result<(), String> {
