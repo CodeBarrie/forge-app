@@ -28,11 +28,33 @@ export function SessionLibrary({ onClose, onResume }: SessionLibraryProps) {
   useEffect(() => { loadAll(); }, []);
 
   const handleDelete = async (id: string) => {
+    const target = saved.find((s) => s.id === id);
+    if (target?.locked) return; // locked sessions cannot be deleted
     try {
       await invoke("delete_session", { sessionId: id });
       setSaved((prev) => prev.filter((s) => s.id !== id));
     } catch (err) {
       console.error("Failed to delete session:", err);
+    }
+  };
+
+  const handleToggleLock = async (id: string) => {
+    setSaved((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, locked: !s.locked } : s))
+    );
+    // Persist the change — re-save the session with the toggled lock
+    const target = saved.find((s) => s.id === id);
+    if (target) {
+      try {
+        await invoke("save_session", {
+          session: {
+            ...target,
+            locked: !target.locked,
+          },
+        });
+      } catch (err) {
+        console.error("Failed to toggle lock:", err);
+      }
     }
   };
 
@@ -210,8 +232,19 @@ export function SessionLibrary({ onClose, onResume }: SessionLibraryProps) {
                     Export
                   </button>
                   <button
+                    className={`btn-lock ${s.locked ? "locked" : ""}`}
+                    title={s.locked ? "Unlock session (allow deletion)" : "Lock session (prevent deletion)"}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleLock(s.id);
+                    }}
+                  >
+                    {s.locked ? "locked" : "lock"}
+                  </button>
+                  <button
                     className="btn-close"
-                    title="Delete session"
+                    title={s.locked ? "Session is locked" : "Delete session"}
+                    disabled={s.locked}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDelete(s.id);

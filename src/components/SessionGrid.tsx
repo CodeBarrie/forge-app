@@ -126,6 +126,7 @@ interface SessionGridProps {
   bgOpacity: number;
   soundEnabled: boolean;
   terminalFontSize: number;
+  skipPermissions: boolean;
   layoutMode: string;
   showSymbols: boolean;
   showGridLines: boolean;
@@ -138,7 +139,7 @@ interface SessionGridProps {
   onDropPromptFile?: (filePath: string) => void;
 }
 
-export function SessionGrid({ sessions, focusedSessionId, bgOpacity, soundEnabled, terminalFontSize, layoutMode, showSymbols, showGridLines, onRemove, onUpdate, onReorder, onNewSession, onQuickSession, onSessionFocus, onDropPromptFile }: SessionGridProps) {
+export function SessionGrid({ sessions, focusedSessionId, bgOpacity, soundEnabled, terminalFontSize, skipPermissions, layoutMode, showSymbols, showGridLines, onRemove, onUpdate, onReorder, onNewSession, onQuickSession, onSessionFocus, onDropPromptFile }: SessionGridProps) {
   const [visiblePage, setVisiblePage] = useState(0);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [dropIdx, setDropIdx] = useState<number | null>(null);
@@ -426,6 +427,7 @@ export function SessionGrid({ sessions, focusedSessionId, bgOpacity, soundEnable
               bgOpacity={bgOpacity}
               soundEnabled={soundEnabled}
               terminalFontSize={terminalFontSize}
+              skipPermissions={skipPermissions}
               onClose={() => onRemove(session.id)}
               onUpdate={(updates) => onUpdate(session.id, updates)}
               onFocus={() => onSessionFocus(session.id)}

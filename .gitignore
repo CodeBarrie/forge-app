@@ -5,3 +5,18 @@ src-tauri/gen/
 *.log
 .DS_Store
 Thumbs.db
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment
+.env
+.env.*
+
+# Dev scratch files
+chime-picker.html
+playstation-sounds.html

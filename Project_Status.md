@@ -6,8 +6,8 @@ Tauri v2 + React desktop app that runs multiple Claude Code sessions in parallel
 ## Working
 - Embedded PTY terminals via portable-pty + xterm.js (WebGL renderer with canvas fallback for transparency)
 - Configurable grid layouts: Auto, 2 Col, 2 Row, 3 Col, 3 Row, 2×2, 3×2, 2×3
-- Session creation with default working dir (`__CLAUDE ZONE`) + project presets
-- Claude Code launches clean (nesting detection bypass) with `--dangerously-skip-permissions`
+- Session creation with recent projects and directory browser
+- Claude Code launches clean (nesting detection bypass), with opt-in `--dangerously-skip-permissions` toggle
 - Session save on close with AI-generated summaries (Anthropic API)
 - Session library with two restore modes: **Resume** (`--resume` exact session) and **New + Context** (fresh instance with summary), mustard yellow theme
 - Auto-save every 5 minutes (silent, green border pulse indicator)

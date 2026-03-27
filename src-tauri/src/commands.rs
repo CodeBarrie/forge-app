@@ -6,6 +6,13 @@ use tauri::{AppHandle, Emitter, Manager, State};
 use serde::{Deserialize, Serialize};
 use portable_pty::{native_pty_system, CommandBuilder, PtySize};
 
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
+
+/// Windows CREATE_NO_WINDOW flag — prevents console windows from flashing open
+#[cfg(windows)]
+const CREATE_NO_WINDOW: u32 = 0x08000000;
+
 // ── Types ────────────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -26,6 +33,8 @@ pub struct SavedSession {
     pub closed_at: Option<u64>,
     #[serde(rename = "claudeSessionId")]
     pub claude_session_id: Option<String>,
+    #[serde(default)]
+    pub locked: Option<bool>,
 }
 
 // ── Process Store ─────────────────────────────────────────────────────────────
@@ -60,6 +69,7 @@ pub fn start_session(
     claude_session_id: Option<String>,
     cols: Option<u16>,
     rows: Option<u16>,
+    skip_permissions: Option<bool>,
 ) -> Result<(), String> {
     let claude_cmd = find_claude_binary().ok_or("Could not find 'claude' in PATH")?;
 
@@ -103,8 +113,10 @@ pub fn start_session(
         });
     }
 
-    // Run without permission prompts
-    cmd.arg("--dangerously-skip-permissions");
+    // Only skip permission prompts if explicitly opted in
+    if skip_permissions.unwrap_or(false) {
+        cmd.arg("--dangerously-skip-permissions");
+    }
 
     // Remove nesting-detection env vars so Claude Code doesn't think it's inside another session
     for key in &["CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT", "CLAUDE_CODE_SESSION"] {
@@ -285,15 +297,24 @@ Be direct. Plain prose. No preamble."#
     );
 
     // Use claude CLI with --print for one-shot, no-interactive output
-    let output = tokio::process::Command::new(&claude_cmd)
+    // Timeout after 10s — frontend also races with an 8s fallback
+    let mut summary_cmd = tokio::process::Command::new(&claude_cmd);
+    summary_cmd
         .arg("--print")
         .arg(&prompt)
         .env_remove("CLAUDECODE")
         .env_remove("CLAUDE_CODE_ENTRYPOINT")
-        .env_remove("CLAUDE_CODE_SESSION")
-        .output()
-        .await
-        .map_err(|e| format!("Failed to run claude CLI: {e}"))?;
+        .env_remove("CLAUDE_CODE_SESSION");
+    #[cfg(windows)]
+    summary_cmd.creation_flags(CREATE_NO_WINDOW);
+
+    let output = tokio::time::timeout(
+        std::time::Duration::from_secs(10),
+        summary_cmd.output()
+    )
+    .await
+    .map_err(|_| "Summary generation timed out after 10s".to_string())?
+    .map_err(|e| format!("Failed to run claude CLI: {e}"))?;
 
     let text = String::from_utf8_lossy(&output.stdout).trim().to_string();
 
@@ -314,7 +335,11 @@ pub fn export_log(app: AppHandle, filename: String, content: String) -> Result<S
     let logs_dir = data_dir.join("logs");
     std::fs::create_dir_all(&logs_dir).map_err(|e| e.to_string())?;
 
-    let path = logs_dir.join(&filename);
+    // Sanitize filename: strip path separators to prevent directory traversal
+    let safe_name = std::path::Path::new(&filename)
+        .file_name()
+        .ok_or("Invalid filename")?;
+    let path = logs_dir.join(safe_name);
     std::fs::write(&path, &content).map_err(|e| e.to_string())?;
     Ok(path.to_string_lossy().to_string())
 }
@@ -324,8 +349,16 @@ pub fn open_logs_dir(app: AppHandle) -> Result<(), String> {
     let data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
     let logs_dir = data_dir.join("logs");
     std::fs::create_dir_all(&logs_dir).map_err(|e| e.to_string())?;
-    std::process::Command::new("explorer")
-        .arg(logs_dir)
+
+    #[cfg(target_os = "windows")]
+    let program = "explorer";
+    #[cfg(target_os = "macos")]
+    let program = "open";
+    #[cfg(target_os = "linux")]
+    let program = "xdg-open";
+
+    std::process::Command::new(program)
+        .arg(&logs_dir)
         .spawn()
         .map_err(|e| e.to_string())?;
     Ok(())
@@ -343,13 +376,9 @@ pub struct ScreenshotInfo {
 }
 
 #[tauri::command]
-pub fn list_screenshots(limit: Option<usize>) -> Result<Vec<ScreenshotInfo>, String> {
-    let screenshots_dir = format!(
-        "{}\\Pictures\\Screenshots",
-        std::env::var("USERPROFILE").unwrap_or_default()
-    );
+pub fn list_screenshots(screenshots_dir: String, limit: Option<usize>) -> Result<Vec<ScreenshotInfo>, String> {
     let dir = std::path::Path::new(&screenshots_dir);
-    if !dir.exists() { return Ok(vec![]); }
+    if !dir.is_dir() { return Ok(vec![]); }
 
     let mut entries: Vec<ScreenshotInfo> = std::fs::read_dir(dir)
         .map_err(|e| e.to_string())?
@@ -375,12 +404,19 @@ pub fn list_screenshots(limit: Option<usize>) -> Result<Vec<ScreenshotInfo>, Str
 }
 
 #[tauri::command]
-pub fn read_screenshot_thumbnail(path: String, _max_width: Option<u32>) -> Result<String, String> {
+pub fn read_screenshot_thumbnail(screenshots_dir: String, path: String, _max_width: Option<u32>) -> Result<String, String> {
     use base64::Engine;
     let file_path = std::path::Path::new(&path);
     if !file_path.exists() { return Err("File not found".to_string()); }
 
-    let buf = std::fs::read(file_path).map_err(|e| e.to_string())?;
+    // Scope reads to the configured screenshots directory
+    let canonical_dir = std::fs::canonicalize(&screenshots_dir).map_err(|e| e.to_string())?;
+    let canonical_file = std::fs::canonicalize(file_path).map_err(|e| e.to_string())?;
+    if !canonical_file.starts_with(&canonical_dir) {
+        return Err("Access denied: file is outside the screenshots directory".to_string());
+    }
+
+    let buf = std::fs::read(&canonical_file).map_err(|e| e.to_string())?;
     let ext = file_path.extension().and_then(|e| e.to_str()).unwrap_or("png").to_lowercase();
     let mime = match ext.as_str() {
         "jpg" | "jpeg" => "image/jpeg",
@@ -397,6 +433,20 @@ pub fn read_screenshot_thumbnail(path: String, _max_width: Option<u32>) -> Resul
 #[tauri::command]
 pub fn check_dir_exists(path: String) -> Result<bool, String> {
     Ok(std::path::Path::new(&path).is_dir())
+}
+
+#[tauri::command]
+pub fn get_home_dir() -> Result<String, String> {
+    let home = if cfg!(windows) {
+        std::env::var("USERPROFILE").unwrap_or_default()
+    } else {
+        std::env::var("HOME").unwrap_or_default()
+    };
+    if home.is_empty() {
+        Err("Could not determine home directory".to_string())
+    } else {
+        Ok(home)
+    }
 }
 
 // ── Export Transcript ───────────────────────────────────────────────────────
@@ -673,6 +723,14 @@ pub async fn fetch_ai_headlines() -> Result<Vec<Headline>, String> {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
+/// Create a std::process::Command with CREATE_NO_WINDOW on Windows
+fn hidden_command(program: &str) -> std::process::Command {
+    let mut cmd = std::process::Command::new(program);
+    #[cfg(windows)]
+    cmd.creation_flags(CREATE_NO_WINDOW);
+    cmd
+}
+
 fn find_claude_binary() -> Option<String> {
     let candidates = if cfg!(windows) {
         vec![
@@ -770,7 +828,7 @@ pub struct GitInfo {
 #[tauri::command]
 pub fn get_git_info(working_dir: String) -> Option<GitInfo> {
     // Get current branch
-    let branch_output = std::process::Command::new("git")
+    let branch_output = hidden_command("git")
         .args(["rev-parse", "--abbrev-ref", "HEAD"])
         .current_dir(&working_dir)
         .output()
@@ -783,7 +841,7 @@ pub fn get_git_info(working_dir: String) -> Option<GitInfo> {
     let branch = String::from_utf8_lossy(&branch_output.stdout).trim().to_string();
 
     // Check if dirty (uncommitted changes)
-    let status_output = std::process::Command::new("git")
+    let status_output = hidden_command("git")
         .args(["status", "--porcelain"])
         .current_dir(&working_dir)
         .output()
@@ -793,7 +851,7 @@ pub fn get_git_info(working_dir: String) -> Option<GitInfo> {
         .unwrap_or(false);
 
     // Check ahead/behind
-    let ab_output = std::process::Command::new("git")
+    let ab_output = hidden_command("git")
         .args(["rev-list", "--left-right", "--count", "HEAD...@{upstream}"])
         .current_dir(&working_dir)
         .output()
@@ -833,7 +891,7 @@ pub fn get_git_diff(working_dir: String, file_path: String) -> Result<String, St
         args.push(file_path);
     }
 
-    let output = std::process::Command::new("git")
+    let output = hidden_command("git")
         .args(&args)
         .current_dir(&working_dir)
         .output()
@@ -849,7 +907,7 @@ pub fn get_git_diff(working_dir: String, file_path: String) -> Result<String, St
 
 #[tauri::command]
 pub fn get_git_changed_files(working_dir: String) -> Result<Vec<ChangedFile>, String> {
-    let output = std::process::Command::new("git")
+    let output = hidden_command("git")
         .args(["status", "--porcelain"])
         .current_dir(&working_dir)
         .output()
@@ -876,7 +934,7 @@ pub fn get_git_changed_files(working_dir: String) -> Result<Vec<ChangedFile>, St
 
 #[tauri::command]
 pub fn git_stage_file(working_dir: String, file_path: String) -> Result<(), String> {
-    let output = std::process::Command::new("git")
+    let output = hidden_command("git")
         .args(["add", &file_path])
         .current_dir(&working_dir)
         .output()
@@ -892,7 +950,7 @@ pub fn git_stage_file(working_dir: String, file_path: String) -> Result<(), Stri
 
 #[tauri::command]
 pub fn git_unstage_file(working_dir: String, file_path: String) -> Result<(), String> {
-    let output = std::process::Command::new("git")
+    let output = hidden_command("git")
         .args(["restore", "--staged", &file_path])
         .current_dir(&working_dir)
         .output()
@@ -908,7 +966,7 @@ pub fn git_unstage_file(working_dir: String, file_path: String) -> Result<(), St
 
 fn get_gpu_stats() -> (Option<f32>, Option<f32>, Option<f32>, Option<f32>, Option<f32>) {
     // Try nvidia-smi first
-    if let Ok(output) = std::process::Command::new("nvidia-smi")
+    if let Ok(output) = hidden_command("nvidia-smi")
         .args(["--query-gpu=utilization.gpu,memory.used,memory.total,temperature.gpu", "--format=csv,noheader,nounits"])
         .output()
     {
