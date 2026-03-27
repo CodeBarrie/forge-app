@@ -51,8 +51,13 @@ export default function App() {
     const saved = localStorage.getItem("forge-sound-enabled");
     return saved !== null ? saved === "true" : true;
   });
+  const [tickerEnabled, setTickerEnabled] = useState(true);
+  const [homeDir, setHomeDir] = useState("");
 
   useEffect(() => { interceptConsole(); }, []);
+  useEffect(() => {
+    invoke<string>("get_home_dir").then(setHomeDir).catch(() => {});
+  }, []);
   const [windowOpacity, setWindowOpacity] = useState(1);
   const [focusedSessionId, setFocusedSessionId] = useState<string | null>(null);
 
@@ -79,7 +84,7 @@ export default function App() {
       id: `session-${Date.now()}`,
       label: `Quick ${timeLabel}`,
       project: "Untitled",
-      workingDir: "C:\\Users\\Skate\\Documents\\__CLAUDE ZONE",
+      workingDir: homeDir,
       status: "active",
       createdAt: Date.now(),
       lastActiveAt: Date.now(),
@@ -87,17 +92,17 @@ export default function App() {
     };
     setSessions((prev) => [...prev, session]);
     addToast("Quick session launched", "success");
-  }, [addToast]);
+  }, [addToast, homeDir]);
 
   const handleDropPromptFile = useCallback((filePath: string) => {
-    const fileName = filePath.split("\\").pop()?.replace(/\.md$/i, "") || "Prompt";
+    const fileName = filePath.split(/[/\\]/).pop()?.replace(/\.md$/i, "") || "Prompt";
     const now = new Date();
     const timeLabel = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     const session: Session = {
       id: `session-${Date.now()}`,
       label: `${fileName} ${timeLabel}`,
       project: "Untitled",
-      workingDir: "C:\\Users\\Skate\\Documents\\__CLAUDE ZONE",
+      workingDir: homeDir,
       status: "active",
       createdAt: Date.now(),
       lastActiveAt: Date.now(),
@@ -106,7 +111,7 @@ export default function App() {
     };
     setSessions((prev) => [...prev, session]);
     addToast(`Prompt session: ${fileName}`, "success");
-  }, [addToast]);
+  }, [addToast, homeDir]);
 
   // ── Custom drag-and-drop from file browser ──────────────────────────
   useEffect(() => {
@@ -271,6 +276,7 @@ export default function App() {
   }, [quickSession]);
 
   // ── Persist settings ─────────────────────────────────────────────
+  useEffect(() => { localStorage.setItem("forge-skip-permissions", String(skipPermissions)); }, [skipPermissions]);
   useEffect(() => { localStorage.setItem("forge-sound-enabled", String(soundEnabled)); }, [soundEnabled]);
   useEffect(() => { localStorage.setItem("forge-skip-permissions", String(skipPermissions)); }, [skipPermissions]);
   useEffect(() => { localStorage.setItem("forge-show-symbols", String(showSymbols)); }, [showSymbols]);
@@ -420,12 +426,16 @@ export default function App() {
         onTermFontSizeChange={setTermFontSize}
         tickerSpeed={tickerSpeed}
         onTickerSpeedChange={setTickerSpeed}
+        tickerEnabled={tickerEnabled}
+        onToggleTicker={() => setTickerEnabled((v) => !v)}
         skipPermissions={skipPermissions}
         onToggleSkipPermissions={() => setSkipPermissions((v) => !v)}
       />
-      <div className="ember-strip">
-        <NewsTicker speed={tickerSpeed} />
-      </div>
+      {tickerEnabled && (
+        <div className="ember-strip">
+          <NewsTicker speed={tickerSpeed} />
+        </div>
+      )}
       {broadcastOpen && (
         <BroadcastBar
           sessionCount={sessions.filter((s) => s.status !== "closed").length}
@@ -440,6 +450,7 @@ export default function App() {
           bgOpacity={windowOpacity}
           soundEnabled={soundEnabled}
           terminalFontSize={termFontSize}
+          skipPermissions={skipPermissions}
           layoutMode={layoutMode}
           showSymbols={showSymbols}
           showGridLines={showGridLines}

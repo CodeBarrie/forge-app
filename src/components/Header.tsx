@@ -25,6 +25,8 @@ interface HeaderProps {
   onTermFontSizeChange: (value: number) => void;
   tickerSpeed: number;
   onTickerSpeedChange: (value: number) => void;
+  tickerEnabled: boolean;
+  onToggleTicker: () => void;
   skipPermissions: boolean;
   onToggleSkipPermissions: () => void;
 }
@@ -54,6 +56,8 @@ export function Header({
   onTermFontSizeChange,
   tickerSpeed,
   onTickerSpeedChange,
+  tickerEnabled,
+  onToggleTicker,
   skipPermissions,
   onToggleSkipPermissions,
 }: HeaderProps) {
@@ -118,7 +122,6 @@ export function Header({
                 <span>Grid Lines</span>
               </label>
               <div className="display-divider" />
-              <h4>Permissions</h4>
               <label className="display-toggle">
                 <input type="checkbox" checked={skipPermissions} onChange={onToggleSkipPermissions} />
                 <span>Always Skip Permissions</span>
@@ -181,7 +184,16 @@ export function Header({
                 ))}
               </div>
               <div className="display-divider" />
-              <h4>Ticker Speed — {tickerSpeed}s</h4>
+              <div className="ticker-header-row">
+                <h4>Ticker Speed — {tickerEnabled ? `${tickerSpeed}s` : "off"}</h4>
+                <button
+                  className={`btn-ticker-toggle ${tickerEnabled ? "" : "off"}`}
+                  onClick={onToggleTicker}
+                  title={tickerEnabled ? "Disable ticker until next startup" : "Re-enable ticker"}
+                >
+                  {tickerEnabled ? "on" : "off"}
+                </button>
+              </div>
               <div className="gui-scale-control">
                 <span className="gui-scale-label">▶▶</span>
                 <input
@@ -192,6 +204,7 @@ export function Header({
                   step="5"
                   value={tickerSpeed}
                   onChange={(e) => onTickerSpeedChange(parseInt(e.target.value))}
+                  disabled={!tickerEnabled}
                 />
                 <span className="gui-scale-label">▶</span>
               </div>

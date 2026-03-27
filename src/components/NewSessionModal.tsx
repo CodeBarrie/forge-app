@@ -63,6 +63,7 @@ export function NewSessionModal({ onClose, onCreate }: NewSessionModalProps) {
   const [workingDir, setWorkingDir] = useState("");
   const [dirWarning, setDirWarning] = useState("");
   const [colorIdx, setColorIdx] = useState(0);
+  const [claudeSessionId, setClaudeSessionId] = useState("");
   const [recentProjects, setRecentProjects] = useState<RecentProject[]>(getRecentProjects);
 
   // Seed recent projects from session history on first run
@@ -97,6 +98,7 @@ export function NewSessionModal({ onClose, onCreate }: NewSessionModalProps) {
       createdAt: Date.now(),
       lastActiveAt: Date.now(),
       color: PROJECT_COLORS[colorIdx],
+      ...(claudeSessionId.trim() ? { claudeSessionId: claudeSessionId.trim() } : {}),
     };
     onCreate(session);
   };
@@ -183,6 +185,17 @@ export function NewSessionModal({ onClose, onCreate }: NewSessionModalProps) {
                 />
               ))}
             </div>
+          </div>
+
+          <div className="field-group">
+            <label>Claude Session ID <span style={{ color: "var(--accent-fire)", fontWeight: 300 }}>(optional — resume a previous session)</span></label>
+            <input
+              className="field-input"
+              value={claudeSessionId}
+              onChange={(e) => setClaudeSessionId(e.target.value)}
+              placeholder="e.g. abc123-def456-..."
+              style={{ fontFamily: "var(--font-mono)", fontSize: "12px" }}
+            />
           </div>
         </div>
 

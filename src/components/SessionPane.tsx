@@ -6,7 +6,7 @@ import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebglAddon } from "@xterm/addon-webgl";
 import { generateSessionSummary } from "../lib/summarizer";
-import { playChime } from "../lib/sounds";
+import { playChime, releaseSessionChime } from "../lib/sounds";
 import { forgeLog } from "./ConsoleLog";
 import "@xterm/xterm/css/xterm.css";
 
@@ -194,7 +194,7 @@ export function SessionPane({ session, isFocused, bgOpacity, soundEnabled, termi
         // Play chime if Claude was active for >10s (sustained work finished)
         const activeFor = activityStartRef.current ? Date.now() - activityStartRef.current : 0;
         if (activeFor > 30_000 && soundEnabledRef.current) {
-          playChime();
+          playChime(session.id);
         }
         activityStartRef.current = null;
         onUpdate({ status: "idle" });
@@ -264,6 +264,7 @@ export function SessionPane({ session, isFocused, bgOpacity, soundEnabled, termi
       if (unlistenData) unlistenData();
       if (unlistenExit) unlistenExit();
       if (unlistenClaudeSid) unlistenClaudeSid();
+      releaseSessionChime(session.id);
       term.dispose();
     };
   }, [session.id]);
@@ -331,6 +332,8 @@ export function SessionPane({ session, isFocused, bgOpacity, soundEnabled, termi
           summary = await generateSessionSummary(session.label, session.project, transcript);
         } catch {}
       }
+      // Auto-lock named sessions (non-Quick) to prevent accidental deletion
+      const isNamed = !session.label.startsWith("Quick ");
       await invoke("save_session", {
         session: {
           id: session.id,
@@ -344,6 +347,7 @@ export function SessionPane({ session, isFocused, bgOpacity, soundEnabled, termi
           transcript: transcript.slice(-8000),
           closedAt: nowSecs,
           claudeSessionId: claudeSessionIdRef.current,
+          locked: isNamed,
         },
       });
     };
@@ -391,14 +395,24 @@ export function SessionPane({ session, isFocused, bgOpacity, soundEnabled, termi
 
     try {
       forgeLog("info", "Generating summary via claude CLI...");
-      const summary = transcript.length > 50
-        ? await generateSessionSummary(label, project, transcript)
-        : `Session "${label}" — saved snapshot.`;
+      let summary: string;
+      if (transcript.length > 50) {
+        // Race summary generation against 8s timeout so save never hangs
+        const summaryPromise = generateSessionSummary(label, project, transcript);
+        const timeoutPromise = new Promise<string>((resolve) =>
+          setTimeout(() => resolve(`Session "${label}" — saved snapshot.`), 8000)
+        );
+        summary = await Promise.race([summaryPromise, timeoutPromise]);
+      } else {
+        summary = `Session "${label}" — saved snapshot.`;
+      }
       forgeLog("info", `Summary generated: ${summary.slice(0, 200)}`);
 
       // Jump to 8
       setSaveState((prev) => ({ ...prev, progress: 8 }));
 
+      // Auto-lock named sessions (non-Quick) to prevent accidental deletion
+      const isNamed = !label.startsWith("Quick ");
       await invoke("save_session", {
         session: {
           id: session.id,
@@ -412,6 +426,7 @@ export function SessionPane({ session, isFocused, bgOpacity, soundEnabled, termi
           transcript: transcript.slice(-8000),
           closedAt: null,
           claudeSessionId: claudeSessionIdRef.current,
+          locked: isNamed,
         },
       });
 

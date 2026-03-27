@@ -21,7 +21,8 @@ interface FileBrowserProps {
   onClose: () => void;
 }
 
-const DEFAULT_ROOT = "C:\\Users\\Skate\\Documents\\__CLAUDE ZONE";
+// Dynamic: resolved at mount via get_home_dir command
+const DEFAULT_ROOT = "";
 
 const EXT_ICONS: Record<string, string> = {
   ts: "\u{1D54B}",  tsx: "\u{1D54B}",
@@ -83,12 +84,27 @@ export function FileBrowser({ open, onClose }: FileBrowserProps) {
     }
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const [homeDir, setHomeDir] = useState(DEFAULT_ROOT);
   const [currentPath, setCurrentPath] = useState(DEFAULT_ROOT);
   const [tree, setTree] = useState<TreeNode[]>([]);
   const [filter, setFilter] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const filterRef = useRef<HTMLInputElement>(null);
+  const homeDirResolved = useRef(false);
+
+  // Resolve home directory on first mount
+  useEffect(() => {
+    if (homeDirResolved.current) return;
+    homeDirResolved.current = true;
+    invoke<string>("get_home_dir").then((dir) => {
+      setHomeDir(dir);
+      if (!currentPath) {
+        setCurrentPath(dir);
+        setHistory([dir]);
+      }
+    }).catch(() => {});
+  }, []);
 
   // Navigation history
   const [history, setHistory] = useState<string[]>([DEFAULT_ROOT]);
@@ -159,8 +175,8 @@ export function FileBrowser({ open, onClose }: FileBrowserProps) {
   }, [historyIdx, history, loadDirectory]);
 
   const goHome = useCallback(() => {
-    loadDirectory(DEFAULT_ROOT);
-  }, [loadDirectory]);
+    loadDirectory(homeDir);
+  }, [loadDirectory, homeDir]);
 
   useEffect(() => {
     if (open) {

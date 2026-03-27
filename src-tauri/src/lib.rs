@@ -29,6 +29,7 @@ pub fn run() {
             list_screenshots,
             read_screenshot_thumbnail,
             check_dir_exists,
+            get_home_dir,
             export_transcript,
             get_system_stats,
             get_git_info,

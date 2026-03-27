@@ -28,6 +28,7 @@ export interface SavedSession extends Session {
   summary: string;
   filesChanged: string[];
   claudeSessionId?: string;
+  locked?: boolean;
 }
 
 export interface TranscriptEntry {

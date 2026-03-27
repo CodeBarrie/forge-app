@@ -15,7 +15,7 @@ src-tauri/gen/
 .DS_Store
 Thumbs.db
 
-# Editor / IDE
+# IDE / editor
 .vscode/
 .idea/
 *.swp
@@ -25,3 +25,7 @@ Thumbs.db
 # Environment
 .env
 .env.*
+
+# Dev scratch files
+chime-picker.html
+playstation-sounds.html

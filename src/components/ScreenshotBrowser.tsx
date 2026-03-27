@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { open } from "@tauri-apps/plugin-dialog";
 
 interface ScreenshotInfo {
   path: string;
@@ -14,27 +15,38 @@ interface ScreenshotBrowserProps {
 }
 
 export function ScreenshotBrowser({ onClose, onSelect }: ScreenshotBrowserProps) {
+  const [screenshotsDir, setScreenshotsDir] = useState<string | null>(
+    () => localStorage.getItem("forge-screenshots-dir")
+  );
   const [screenshots, setScreenshots] = useState<ScreenshotInfo[]>([]);
   const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
 
-  useEffect(() => {
-    invoke<ScreenshotInfo[]>("list_screenshots", { limit: 30 })
+  const loadScreenshots = useCallback((dir: string) => {
+    setLoading(true);
+    invoke<ScreenshotInfo[]>("list_screenshots", { screenshotsDir: dir, limit: 30 })
       .then((result) => {
         setScreenshots(result);
         setLoading(false);
-        // Load thumbnails for first batch
-        result.slice(0, 12).forEach((s) => loadThumbnail(s.path));
+        result.slice(0, 12).forEach((s) => loadThumbnail(dir, s.path));
       })
       .catch(() => setLoading(false));
   }, []);
 
-  const loadThumbnail = useCallback(async (path: string) => {
-    if (thumbnails[path]) return;
+  useEffect(() => {
+    if (screenshotsDir) {
+      loadScreenshots(screenshotsDir);
+    } else {
+      setLoading(false);
+    }
+  }, [screenshotsDir, loadScreenshots]);
+
+  const loadThumbnail = useCallback(async (dir: string, path: string) => {
     try {
       const dataUrl = await invoke<string>("read_screenshot_thumbnail", {
+        screenshotsDir: dir,
         path,
         maxWidth: 300,
       });
@@ -48,14 +60,26 @@ export function ScreenshotBrowser({ onClose, onSelect }: ScreenshotBrowserProps)
     (e: React.UIEvent<HTMLDivElement>) => {
       const el = e.currentTarget;
       if (el.scrollTop + el.clientHeight >= el.scrollHeight - 100) {
-        // Load more thumbnails as user scrolls
         screenshots.forEach((s) => {
-          if (!thumbnails[s.path]) loadThumbnail(s.path);
+          if (!thumbnails[s.path] && screenshotsDir) loadThumbnail(screenshotsDir, s.path);
         });
       }
     },
-    [screenshots, thumbnails, loadThumbnail]
+    [screenshots, thumbnails, loadThumbnail, screenshotsDir]
   );
+
+  const chooseDirectory = async () => {
+    try {
+      const selected = await open({ directory: true, multiple: false });
+      if (typeof selected === "string") {
+        localStorage.setItem("forge-screenshots-dir", selected);
+        setScreenshotsDir(selected);
+        setThumbnails({});
+      }
+    } catch {
+      // user cancelled
+    }
+  };
 
   const formatAge = (ts: number) => {
     const diff = Date.now() / 1000 - ts;
@@ -73,7 +97,6 @@ export function ScreenshotBrowser({ onClose, onSelect }: ScreenshotBrowserProps)
     return `${(bytes / 1024).toFixed(0)} KB`;
   };
 
-  // Extract timestamp from screenshot name
   const parseScreenshotName = (name: string) => {
     const match = name.match(/Screenshot (\d{4}-\d{2}-\d{2}) (\d{6})/);
     if (match) {
@@ -93,6 +116,14 @@ export function ScreenshotBrowser({ onClose, onSelect }: ScreenshotBrowserProps)
         <div className="library-header">
           <h2>Screenshots</h2>
           <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <button
+              className="btn-ghost"
+              style={{ fontSize: "11px", padding: "4px 10px" }}
+              onClick={chooseDirectory}
+              title={screenshotsDir || "Choose screenshots folder"}
+            >
+              {screenshotsDir ? "Change Folder" : "Set Folder"}
+            </button>
             <span className="screenshot-count">
               {screenshots.length} recent
             </span>
@@ -116,13 +147,31 @@ export function ScreenshotBrowser({ onClose, onSelect }: ScreenshotBrowserProps)
         )}
 
         <div className="screenshot-grid-container" onScroll={handleScroll}>
-          {loading && (
+          {!screenshotsDir && !loading && (
+            <div className="library-empty">
+              <p>No screenshots directory configured.</p>
+              <button
+                className="btn-primary"
+                style={{ marginTop: "12px" }}
+                onClick={chooseDirectory}
+              >
+                Choose Screenshots Folder
+              </button>
+            </div>
+          )}
+          {screenshotsDir && loading && (
             <div className="library-loading">Scanning screenshots...</div>
           )}
-          {!loading && screenshots.length === 0 && (
+          {screenshotsDir && !loading && screenshots.length === 0 && (
             <div className="library-empty">
-              <p>No screenshots found.</p>
-              <p>Screenshots from Pictures\Screenshots will appear here.</p>
+              <p>No screenshots found in this folder.</p>
+              <button
+                className="btn-ghost"
+                style={{ marginTop: "8px", fontSize: "11px" }}
+                onClick={chooseDirectory}
+              >
+                Choose Different Folder
+              </button>
             </div>
           )}
           <div className="screenshot-grid">
